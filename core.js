@@ -1,6 +1,6 @@
 //(function () {
 var main_div = document.getElementById("guide_main");
-main_div.style = "margin-left: 80px; background-color: azure;";
+main_div.style = "margin-left: 10px; background-color: azure;";
 main_div.innerHTML =
     '<p>乗り換え案内</p><b>From : </b><select id="station_from"></select><br>' +
     '<br><b>To : </b><select id="station_to"></select><br><br><button id="start_search">検索する</button><br><br>' +
