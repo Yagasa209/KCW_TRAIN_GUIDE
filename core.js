@@ -1,11 +1,10 @@
 //(function () {
-var main_div = document.createElement("div");
+var main_div = document.getElementById("guide_main");
 main_div.style = "margin-left: 80px; background-color: azure;";
 main_div.innerHTML =
     '<p>乗り換え案内</p><b>From : </b><select id="station_from"></select><br>' +
     '<br><b>To : </b><select id="station_to"></select><br><br><button id="start_search">検索する</button><br><br>' +
     '<div id="result_div"></div><br><span>ver 0.01</span><br><span>powerd by thenyutheta</span>';
-document.body.appendChild(main_div);
 var selector_from = document.getElementById("station_from");
 var selector_to = document.getElementById("station_to");
 var start_btn = document.getElementById("start_search");
