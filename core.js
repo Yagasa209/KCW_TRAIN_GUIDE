@@ -1,245 +1,49 @@
 //(function () {
+const Version = "0.02";
 var main_div = document.getElementById("guide_main");
-main_div.style = "margin-left: 10px; background-color: azure;";
-main_div.innerHTML =
-    '<p>乗り換え案内</p><b>From : </b><select id="station_from"></select><br>' +
-    '<br><b>To : </b><select id="station_to"></select><br><br><button id="start_search">検索する</button><br><br>' +
-    '<div id="result_div"></div><br><span>ver 0.01</span><br><span>powerd by thenyutheta</span>';
-var selector_from = document.getElementById("station_from");
-var selector_to = document.getElementById("station_to");
-var start_btn = document.getElementById("start_search");
-var result_area = document.getElementById("result_div");
-
-var trains = [];
-//路線データ登録エリア
-/* template
-
-trains.push({
-    name : "name",
-    id : "id",
-    stations : [
-        ["station1", "sort name", "num1"],
-        ["station2", "sort name", "num2"],
-    ]
-});
-
-*/
-
-trains.push({
-    name: "一村線",
-    id: "IC",
-    color: "#0099FF",
-    stations: [
-        ["初原", "はつはら", "01"],
-        ["一村", "いちむら", "02"],
-        ["高台", "たかだい", "03"],
-        ["金泉", "かないずみ", "04"],
-        ["珊瑚口", "さんごぐち", "05"],
-    ]
-});
-
-trains.push({
-    name: "岸川線",
-    id: "KW",
-    color: "#339900",
-    stations: [
-        ["金泉", "かないずみ", "01"],
-        ["沼井", "ぬまい", "02"],
-        ["心愛", "ここあ", "03"],
-        ["岸川", "きしかわ", "04"],
-        ["遠北", "あちきた", "05"],
-        ["高台", "たかだい", "06"],
-        ["神隠", "こがくれ", "07"],
-    ]
-});
-
-trains.push({
-    name: "高野線",
-    id: "TN",
-    color: "#00FF00",
-    stations: [
-        ["廃村", "はいそん", "00"],
-        ["砂口", "すなぐち", "01"],
-        ["北一村", "きたいちむら", "02"],
-        ["一村", "いちむら", "03"],
-        ["ファミリーマート", "ふぁみりーまーと", "04"],
-        ["商店街前", "しょうてんがいまえ", "05"],
-        ["高台", "たかだい", "06"],
-        ["本高台", "ほんたかだい", "07"],
-        ["矢野", "やの", "08"],
-    ],
-    Direct: {
-        "金剛線": "矢野",
+function CreateMainForm() {
+    var ok = true;
+    main_div.style = "margin-left: 10px; background-color: azure;";
+    AddElement(main_div, "p", "乗り換え案内");
+    if (typeof trains == 'undefined') {
+        AddElement(main_div, "p", "古いバージョンです。");
+        AddElement(main_div, "span", "管理者は更新してください。");
+        AddElement(main_div, "br");
+        AddElement(main_div, "span", "利用者はハードリロードをしてみると更新されるかもしれません。");
+        ok = false;
+    } else {
+        AddElement(main_div, "b", "From : ");
+        AddElement(main_div, "select", null, "station_from");
+        AddElement(main_div, "br");
+        AddElement(main_div, "br");
+        AddElement(main_div, "b", "To : ");
+        AddElement(main_div, "select", null, "station_to");
+        AddElement(main_div, "br");
+        AddElement(main_div, "br");
+        AddElement(main_div, "button", "検索する", "start_search");
+        AddElement(main_div, "br");
+        AddElement(main_div, "br");
+        AddElement(main_div, "div", null, "result_div");
+        if (typeof DataPatcher != 'undefined') {
+            DataPatcher();
+        }
+        ok = true;
     }
-});
 
-trains.push({
-    name: "ネザーエクスプレス線",
-    id: "NT",
-    color: "#FF00FF",
-    stations: [
-        ["地終", "ちのはて", "00"],
-        ["高台", "たかだい", "01"],
-        ["珊瑚口", "さんごぐち", "02"],
-        ["海底神殿", "かいていしんでん", "03"],
-        ["メサランド", "めさらんど", "04"],
-    ]
-});
+    AddElement(main_div, "br");
+    AddElement(main_div, "span", "ver " + Version);
+    AddElement(main_div, "br");
+    AddElement(main_div, "span", "powered by thenyutheta");
+    return ok;
+}
 
-trains.push({
-    name: "水谷線",
-    id: "MT",
-    color: "#FF6600",
-    stations: [
-        ["高台", "たかだい", "10"],
-        ["浮島", "うきしま", "11"],
-        ["水谷", "みずたに", "12"],
-        ["沼井", "ぬまい", "13"],
-        ["金泉", "かないずみ", "14"],
-        ["碑文田", "ひもんだ", "15"],
-        ["新碑文田", "しんひもんだ", "16"],
-    ],
-    Direct: {
-        "桜庭線": "高台",
-        "雉鉄本線": "新碑文田",
-    }
-});
+//set up
+if (CreateMainForm()) {
+    var selector_from = document.getElementById("station_from");
+    var selector_to = document.getElementById("station_to");
+    var start_btn = document.getElementById("start_search");
+    var result_area = document.getElementById("result_div");
 
-trains.push({
-    name: "桜庭線",
-    id: "SK",
-    color: "#FF66FF",
-    stations: [
-        ["明神市", "みょうじんし", "01"],
-        ["花園城址公園", "はなぞのじょうしこうえん", "02"],
-        ["蓮苔溝無", "ばすごけみぞなし", "03"],
-        ["山入", "やまいり", "04"],
-        ["勿咲", "なさき", "05"],
-        ["漆ノ森", "しちのもり", "06"],
-        ["草船", "くさぶね", "07"],
-        ["湿塚", "しめつか", "08"],
-        ["一村", "いちむら", "09"],
-        ["高台", "たかだい", "10"],
-    ],
-});
-
-trains.push({
-    name: "矢野線",
-    id: "YN",
-    color: "#FF0000",
-    stations: [
-        ["高台", "たかだい", "10"],
-        ["矢野", "やの", "11"],
-        ["ひまわりの里", "ひまわりのさと", "12"],
-        ["因町", "ちなみまち", "13"],
-        ["燧灘", "ひうちなだ", "14"],
-        ["地終", "ちのはて", "15"],
-    ],
-    Direct: {
-        "桜庭線": "高台",
-    }
-});
-
-
-trains.push({
-    name: "雉鉄本線",
-    id: "KH",
-    color: "#006699",
-    stations: [
-        ["新碑文田", "しんひもんだ", "16"],
-        ["新月町", "しんげつちょう", "17"],
-        ["サウスサイドフロンティア", "さうすさいどふろんてぃあ", "18"],
-    ],
-    Direct: {
-        "水谷線": "新碑文田",
-    }
-});
-
-trains.push({
-    name: "ピリド線",
-    id: "PR",
-    color: "#999999",
-    stations: [
-        ["燧灘", "ひうちなだ", "1"],
-        ["燧灘庁舎", "ひうちなだちょうしゃ", "2"],
-    ]
-});
-
-trains.push({
-    name: "金剛線",
-    id: "KG",
-    color: "#000000",
-    stations: [
-        ["矢野", "やの", "01"],
-        ["採掘場入口", "さいくつじょういりぐち", "02"],
-        ["地下拠点", "ちかきょてん", "03"],
-        ["第二採掘区画終点", "だいにさいくつくかくしゅうてん", "04"],
-        ["第三採掘区画終点", "だいさんさいくつくかくしゅうてん", "05"],
-        ["地下大渓谷", "ちかだいけいこく", "06"],
-    ],
-    Direct: {
-        "高野線": "矢野",
-    }
-});
-
-trains.push({
-    name: "ケダマ村電線",
-    id: "",
-    color: "#C0C040",
-    stations: [
-        ["農場前", "のうじょうまえ", ""],
-        ["ひまわりの里", "ひまわりのさと", ""],
-        ["公民館", "こうみんかん", ""],
-        ["蔗", "さとうきび", ""],
-        ["キャンプ場前", "きゃんぷじょうまえ", ""],
-        ["洞窟前", "どうくつまえ", ""],
-        ["旅人", "たびびと", ""],
-    ],
-    loop: true,
-});
-
-trains.push({
-    name: "市鉄本線",
-    id: "IR",
-    color: "#6600CC",
-    stations: [
-        ["高台", "たかだい", "01"],
-        ["水谷", "みずたに", "02"],
-        ["丸山", "まるやま", "03"],
-        ["山吹", "やまぶき", "04"],
-        ["草船", "くさぶね", "05"],
-        ["花園", "はなぞの", "06"],
-        ["明神", "みょうじん", "01"],
-    ]
-});
-
-trains.push({
-    name: "市鉄支線",
-    id: "",
-    color: "#0000FF",
-    stations: [
-        ["山吹", "やまぶき", ""],
-        ["牛込", "うしごめ", ""],
-    ]
-});
-
-trains.push({
-    name: "海底神殿線",
-    id: "",
-    color: "#000000",
-    stations: [
-        ["海底神殿", "かいていしんでん", ""],
-        ["海上ポート", "かいじょうぽーと", ""],
-    ]
-});
-
-
-
-//路線データ登録エリア終了
-
-//以下処理
-//get and set stations
-{
     var station_selector_data = [];
     var station_infos = new Map();
     for (var i = 0; i < trains.length; i++) {
@@ -265,9 +69,10 @@ trains.push({
         SetSelectorOption(selector_from, i, station_selector_data[i][0]);
         SetSelectorOption(selector_to, i, station_selector_data[i][0]);
     }
+
+    start_btn.onclick = GuideCore;
 }
 
-start_btn.onclick = GuideCore;
 //core
 function GuideCore() {
     var from_st = jQuery("#station_from option:selected").text();
@@ -497,5 +302,14 @@ function LoopNum(val, min, max) {
     } else {
         return val;
     }
+}
+
+function AddElement(parent, tag, text = null, id = null, style = null) {
+    var t = document.createElement(tag);
+    if (text != null) { t.textContent = text; }
+    if (id != null) { t.id = id; }
+    if (style != null) { t.style = style; }
+    parent.appendChild(t);
+    return t;
 }
     //})();
