@@ -45,7 +45,9 @@ if (CreateMainForm()) {
     var result_area = document.getElementById("result_div");
 
     var station_selector_data = [];
+    //駅毎の、その駅に止まる列車の情報の配列。
     var station_infos = new Map();
+    //路線データから駅を調べる。
     for (var i = 0; i < trains.length; i++) {
         for (var g = 0; g < trains[i].stations.length; g++) {
             let name = trains[i].stations[g][0];
@@ -65,6 +67,7 @@ if (CreateMainForm()) {
         }
     });
 
+    //セレクター作成。
     for (var i = 0; i < station_selector_data.length; i++) {
         SetSelectorOption(selector_from, i, station_selector_data[i][0]);
         SetSelectorOption(selector_to, i, station_selector_data[i][0]);
@@ -82,15 +85,15 @@ function GuideCore() {
         result_area.textContent = "駅が同じなので乗り換えは必要ありません。";
         return;
     }
-    var from = station_infos[from_st];
-    var to = station_infos[to_st];
     var result = [];
+    //経路解析。
     CheckNodes(to_st, from_st, new Map(), from_st, result, 0);
     if (result.length == 0) {
         result_area.textContent = "駅が繋がっていないので乗り継ぎ出来ません。";
         return;
     }
     var final_data = [];
+    //結果毎に路線解析
     for (var i = 0; i < result.length; i++) {
         let r_ar = result[i].split(",");
         let debug = [];
@@ -110,6 +113,7 @@ function GuideCore() {
             return -1;
         }
     });
+    //結果の表示と、乗り換えなどの検出。
     for (var i = 0; i < final_data.length; i++) {
         let r_ar = final_data[i][0];
         let data = final_data[i][1];
@@ -141,7 +145,7 @@ function GuideCore() {
         result_area.appendChild(document.createElement("br"));
     }
 };
-
+//路線データを解析。(再帰関数)
 function CheckChange(arr, data, cache = "", cline = 0, index = 0, nowline = null) {
     data = data || [];
     if (index >= arr.length) {
@@ -150,12 +154,14 @@ function CheckChange(arr, data, cache = "", cline = 0, index = 0, nowline = null
     }
     var sta = station_infos[arr[index]];
     for (var i = 0; i < sta.length; i++) {
+        //以前の駅に自分がいること。
         if (index == 0 || station_infos[arr[index - 1]].indexOf(sta[i]) > -1) {
             var c = 0;
             var tr = GetTrainByName(sta[i]);
             if (nowline != null) {
                 var tri = IndexOfStation(tr, arr[index]);
                 var trip = IndexOfStation(tr, arr[index - 1]);
+                //前駅情報が不正か。
                 if (tr.loop == true) {
                     if (trip == -1 || (tr.stations[LoopNum(tri + 1, 0, tr.stations.length - 1)] != tr.stations[trip] && tr.stations[LoopNum(tri - 1, 0, tr.stations.length - 1)] != tr.stations[trip])) {
                         continue;
@@ -176,6 +182,7 @@ function CheckChange(arr, data, cache = "", cline = 0, index = 0, nowline = null
         }
     }
 
+    //乗り換えが少ない物を選択。
     if (index == 0) {
         var min = 999999999;
         var hei = -1;
@@ -233,12 +240,13 @@ function CheckNodes(tar, now, checked, nowres, ok, ss) {
     if (used == 0) {
         return false;
     }
-    if (ss >= 500000) {
+    if (ss >= 5000000) {
         console.log("stacking");
         return false
     }
 }
 
+//路線を無視した隣接駅検索。
 function GetEdgesByStation(name) {
     var res = [];
     for (var i = 0; i < station_infos[name].length; i++) {
