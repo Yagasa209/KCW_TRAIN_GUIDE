@@ -1,9 +1,9 @@
 //(function () {
-const Version = "0.02";
+const Version = "0.03";
 var main_div = document.getElementById("guide_main");
 function CreateMainForm() {
     var ok = true;
-    main_div.style = "margin-left: 10px; background-color: azure;";
+    main_div.style = "margin-left: 10px; background-color: #DDEEFF;";
     AddElement(main_div, "p", "乗り換え案内");
     if (typeof trains == 'undefined') {
         AddElement(main_div, "p", "古いバージョンです。");
@@ -21,6 +21,8 @@ function CreateMainForm() {
         AddElement(main_div, "br");
         AddElement(main_div, "br");
         AddElement(main_div, "button", "検索する", "start_search");
+        AddElement(main_div, "span", "　　");
+        AddElement(main_div, "button", "FromとToを入替", "from_to_exchange");
         AddElement(main_div, "br");
         AddElement(main_div, "br");
         AddElement(main_div, "div", null, "result_div");
@@ -30,6 +32,7 @@ function CreateMainForm() {
         ok = true;
     }
 
+    AddElement(main_div, "br");
     AddElement(main_div, "br");
     AddElement(main_div, "span", "ver " + Version);
     AddElement(main_div, "br");
@@ -43,6 +46,7 @@ if (CreateMainForm()) {
     var selector_to = document.getElementById("station_to");
     var start_btn = document.getElementById("start_search");
     var result_area = document.getElementById("result_div");
+    var from_to_ex = document.getElementById("from_to_exchange");
 
     var station_selector_data = [];
     //駅毎の、その駅に止まる列車の情報の配列。
@@ -74,6 +78,12 @@ if (CreateMainForm()) {
     }
 
     start_btn.onclick = GuideCore;
+
+    from_to_ex.onclick = function () {
+        let temp = selector_from.selectedIndex;
+        selector_from.selectedIndex = selector_to.selectedIndex;
+        selector_to.selectedIndex = temp;
+    }
 }
 
 //core
