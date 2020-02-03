@@ -1,10 +1,10 @@
 //(function () {
-const Version = "0.04b";
+const Version = "0.04c";
 var main_div = document.getElementById("guide_main");
 var check_show_full_data = null;
 function CreateMainForm() {
     var ok = true;
-    main_div.style = "margin-left: 10px; background-color: #DDEEFF;";
+    main_div.style = "background-color: #DDEEFF;";
     AddElement(main_div, "p", "乗り換え案内");
     if (typeof trains == 'undefined') {
         AddElement(main_div, "p", "古いバージョンです。");
