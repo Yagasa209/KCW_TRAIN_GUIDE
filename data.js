@@ -68,7 +68,7 @@ trains.push({
 //3
 trains.push({
   name: "ネザーエクスプレスA線",
-  id: "NT",
+  id: "A",
   color: "#FF00FF",
   stations: [
     ["地終", "ちのばて", "00"],
@@ -82,7 +82,7 @@ trains.push({
 //4
 trains.push({
   name: "ネザーエクスプレスB線",
-  id: "NT",
+  id: "B",
   color: "#0000FF",
   stations: [
     ["高台", "たかだい", "01"],

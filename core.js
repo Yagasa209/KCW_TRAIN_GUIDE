@@ -1,5 +1,5 @@
 //(function () {
-const Version = "0.04";
+const Version = "0.04b";
 var main_div = document.getElementById("guide_main");
 var check_show_full_data = null;
 function CreateMainForm() {
@@ -24,7 +24,6 @@ function CreateMainForm() {
         check_show_full_data = AddElement(main_div, "input");
         check_show_full_data.type = "checkbox"
         AddElement(main_div, "span", "全ての結果を表示")
-        AddElement(main_div, "br");
         AddElement(main_div, "br");
         AddElement(main_div, "button", "検索する", "start_search");
         AddElement(main_div, "span", "　　");
@@ -132,10 +131,13 @@ function GuideCore() {
     //全ての結果を表示しない。
     if (!check_show_full_data.checked) {
         if (final_data.length > 12) {
+            let baselen = final_data.length;
             let top = final_data.slice(0, 8);
-            let worst = final_data.slice(final_data.length - 4, final_data.length);
+            let worst = final_data.slice(baselen - 4, baselen);
             final_data = top;
             final_data = final_data.concat(worst);
+            AddElement(result_area, "span", baselen + "件中" + final_data.length + "件を表示中", null, "font-size: 12px; color: red;");
+            AddElement(result_area, "br");
         }
     }
     //結果の表示と、乗り換えなどの検出。
