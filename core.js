@@ -1,6 +1,7 @@
 //(function () {
-const Version = "0.03";
+const Version = "0.04";
 var main_div = document.getElementById("guide_main");
+var check_show_full_data = null;
 function CreateMainForm() {
     var ok = true;
     main_div.style = "margin-left: 10px; background-color: #DDEEFF;";
@@ -18,6 +19,11 @@ function CreateMainForm() {
         AddElement(main_div, "br");
         AddElement(main_div, "b", "To : ");
         AddElement(main_div, "select", null, "station_to");
+        AddElement(main_div, "br");
+        AddElement(main_div, "br");
+        check_show_full_data = AddElement(main_div, "input");
+        check_show_full_data.type = "checkbox"
+        AddElement(main_div, "span", "全ての結果を表示")
         AddElement(main_div, "br");
         AddElement(main_div, "br");
         AddElement(main_div, "button", "検索する", "start_search");
@@ -123,6 +129,15 @@ function GuideCore() {
             return -1;
         }
     });
+    //全ての結果を表示しない。
+    if (!check_show_full_data.checked) {
+        if (final_data.length > 12) {
+            let top = final_data.slice(0, 8);
+            let worst = final_data.slice(final_data.length - 4, final_data.length);
+            final_data = top;
+            final_data = final_data.concat(worst);
+        }
+    }
     //結果の表示と、乗り換えなどの検出。
     for (var i = 0; i < final_data.length; i++) {
         let r_ar = final_data[i][0];

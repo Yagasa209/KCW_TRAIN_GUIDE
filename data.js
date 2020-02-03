@@ -67,7 +67,7 @@ trains.push({
 
 //3
 trains.push({
-  name: "ネザーエクスプレス線",
+  name: "ネザーエクスプレスA線",
   id: "NT",
   color: "#FF00FF",
   stations: [
@@ -80,6 +80,20 @@ trains.push({
 });
 
 //4
+trains.push({
+  name: "ネザーエクスプレスB線",
+  id: "NT",
+  color: "#0000FF",
+  stations: [
+    ["高台", "たかだい", "01"],
+    ["深樹林", "しんじゅりん", "02"],
+    ["核実験施設", "かくじっけんしせつ", "03"],
+    ["海底神殿", "かいていしんでん", "04"],
+    ["海中要塞", "かいちゅうようさい", "05"],
+  ]
+});
+
+//5
 trains.push({
   name: "水谷線",
   id: "MT",
@@ -99,7 +113,7 @@ trains.push({
   }
 });
 
-//5
+//6
 trains.push({
   name: "桜庭線",
   id: "SK",
@@ -118,7 +132,7 @@ trains.push({
   ],
 });
 
-//6
+//7
 trains.push({
   name: "矢野線",
   id: "YN",
@@ -136,7 +150,7 @@ trains.push({
   }
 });
 
-//7
+//8
 trains.push({
   name: "雉鉄南線",
   id: "KH",
@@ -150,7 +164,7 @@ trains.push({
   ],
 });
 
-//8
+//9
 trains.push({
   name: "雉鉄北線",
   id: "KH",
@@ -164,7 +178,7 @@ trains.push({
   ],
 });
 
-//9
+//10
 trains.push({
   name: "ピリド線",
   id: "PR",
@@ -175,7 +189,7 @@ trains.push({
   ]
 });
 
-//10
+//11
 trains.push({
   name: "金剛線",
   id: "KG",
@@ -193,7 +207,7 @@ trains.push({
   }
 });
 
-//11
+//12
 trains.push({
   name: "ケダマ村電線",
   id: "",
@@ -211,7 +225,7 @@ trains.push({
   loop: true,
 });
 
-//12
+//13
 trains.push({
   name: "市鉄本線",
   id: "IR",
@@ -227,7 +241,7 @@ trains.push({
   ]
 });
 
-//13
+//14
 trains.push({
   name: "市鉄支線",
   id: "",
@@ -238,7 +252,7 @@ trains.push({
   ]
 });
 
-//14
+//15
 trains.push({
   name: "海底神殿線",
   id: "",
