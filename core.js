@@ -1,5 +1,7 @@
-//(function () {
-const Version = "0.04c";
+const Version = "0.04e";
+const RESULT_TOPS = 8;
+const RESULT_WORSTS = 4;
+
 var main_div = document.getElementById("guide_main");
 var check_show_full_data = null;
 function CreateMainForm() {
@@ -131,10 +133,10 @@ function GuideCore() {
     });
     //全ての結果を表示しない。
     if (!check_show_full_data.checked) {
-        if (final_data.length > 12) {
+        if (final_data.length > RESULT_TOPS + RESULT_WORSTS) {
             let baselen = final_data.length;
-            let top = final_data.slice(0, 8);
-            let worst = final_data.slice(baselen - 4, baselen);
+            let top = final_data.slice(0, RESULT_TOPS);
+            let worst = final_data.slice(baselen - RESULT_WORSTS, baselen);
             final_data = top;
             final_data = final_data.concat(worst);
             AddElement(result_area, "span", baselen + "件中" + final_data.length + "件を表示中", null, "font-size: 12px; color: red;");
@@ -348,4 +350,3 @@ function AddElement(parent, tag, text = null, id = null, style = null) {
     parent.appendChild(t);
     return t;
 }
-    //})();
