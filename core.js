@@ -22,8 +22,9 @@ function CreateMainForm() {
         AddElement(main_div, "br");
         AddElement(main_div, "br");
         check_show_full_data = AddElement(main_div, "input");
-        check_show_full_data.type = "checkbox"
-        AddElement(main_div, "span", "全ての結果を表示")
+        check_show_full_data.type = "checkbox";
+        let span_show_full_data = AddElement(main_div, "span", "全ての結果を表示");
+        span_show_full_data.onclick = function () { check_show_full_data.checked = !check_show_full_data.checked; }
         AddElement(main_div, "br");
         AddElement(main_div, "button", "検索する", "start_search");
         AddElement(main_div, "span", "　　");
