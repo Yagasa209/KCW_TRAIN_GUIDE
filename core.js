@@ -1,3 +1,4 @@
+const g_Version = "0.05b";
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
 
@@ -41,11 +42,7 @@ function CreateMainForm() {
 
     AddElement(main_div, "br");
     AddElement(main_div, "br");
-    if (typeof g_Version != 'undefined') {
-        AddElement(main_div, "span", "ver " + g_Version);
-    } else {
-        AddElement(main_div, "span", "Note : 起動システムの軽微な変更があったので、キャッシュの削除を推奨致します。");
-    }
+    AddElement(main_div, "span", "ver " + g_Version);
     AddElement(main_div, "br");
     AddElement(main_div, "span", "powered by thenyutheta");
     return ok;
