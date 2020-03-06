@@ -1,4 +1,3 @@
-const Version = "0.04g";
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
 
@@ -42,7 +41,11 @@ function CreateMainForm() {
 
     AddElement(main_div, "br");
     AddElement(main_div, "br");
-    AddElement(main_div, "span", "ver " + Version);
+    if (typeof g_Version != 'undefined') {
+        AddElement(main_div, "span", "ver " + g_Version);
+    } else {
+        AddElement(main_div, "span", "Note : 起動システムの軽微な変更があったので、キャッシュの削除を推奨致します。");
+    }
     AddElement(main_div, "br");
     AddElement(main_div, "span", "powered by thenyutheta");
     return ok;
@@ -235,6 +238,8 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
     var sta_info = IndexOfStation(train, station);
     if (train.id == "") {
         span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.stations[sta_info][2] + "</span>";
+    } else if (train.stations[sta_info][2] == "") {
+        span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.id + " </span>";
     } else {
         span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.id + "-" + train.stations[sta_info][2] + "</span>";
     }
