@@ -1,4 +1,4 @@
-const g_Version = "0.05b";
+const g_Version = "0.05c";
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
 
@@ -144,6 +144,7 @@ function GuideCore() {
         }
     }
     //結果の表示と、乗り換えなどの検出。
+    //Todo : 路線解析結果に乗換などを検出しやすくするデータを追加することも考える。
     for (var i = 0; i < final_data.length; i++) {
         let r_ar = final_data[i][0];
         let data = final_data[i][1];
@@ -176,6 +177,7 @@ function GuideCore() {
     }
 };
 //路線データを解析。(再帰関数)
+//Todo : 徒歩データ対応と可読性改善(再実装も視野に)
 function CheckChange(arr, data, cache = "", cline = 0, index = 0, nowline = null) {
     data = data || [];
     if (index >= arr.length) {
@@ -233,6 +235,7 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
     var span = document.createElement("span");
     span.innerHTML = "";
     var sta_info = IndexOfStation(train, station);
+    //Idや■を追加
     if (train.id == "") {
         span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.stations[sta_info][2] + "</span>";
     } else if (train.stations[sta_info][2] == "") {
@@ -240,14 +243,17 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
     } else {
         span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.id + "-" + train.stations[sta_info][2] + "</span>";
     }
+    //駅名を追加
     if (train.stations[sta_info][2] == "") {
-        span.innerHTML += "<span>" + station + "</span>";
+        span.innerHTML += "<span title=\"" + train.stations[sta_info][1] + "\">" + station + "</span>";
     } else {
-        span.innerHTML += "<span>  " + station + "</span>";
+        span.innerHTML += "<span title=\"" + train.stations[sta_info][1] + "\">\t" + station + "</span>";
     }
+    //情報を追加
     if (opt != null) {
         span.innerHTML += " <b><u>[" + opt + "]</u></b>";
     }
+    //他の路線の情報を追加
     if (subtrain != null) {
         span.innerHTML += " <span style=\"color:" + subtrain.color + ";\">■" + subtrain.id + ":" + subtrain.name + "</span>";
     }
