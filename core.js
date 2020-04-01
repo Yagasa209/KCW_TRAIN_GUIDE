@@ -1,4 +1,4 @@
-const g_Version = "0.05f";
+const g_Version = "0.05f2";
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
 
