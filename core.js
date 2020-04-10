@@ -1,4 +1,4 @@
-const g_Version = "0.06";
+const g_Version = "0.06b";
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
 
@@ -134,29 +134,28 @@ function GuideCore() {
 
     var is_overlength = final_data.length > RESULT_TOPS + RESULT_WORSTS;
     //全ての結果を表示しない。
-    if (!check_show_full_data.checked) {
-        if (is_overlength) {
-            let baselen = final_data.length;
-            let top = final_data.slice(0, RESULT_TOPS);
-            let worst = final_data.slice(baselen - RESULT_WORSTS, baselen);
-            final_data = top;
-            final_data = final_data.concat(worst);
-            AddElement(result_area, "span", baselen + "件中" + final_data.length + "件を表示中", null, "font-size: 12px; color: red;");
-            AddElement(result_area, "br");
-        }
+    if (!check_show_full_data.checked && is_overlength) {
+        let baselen = final_data.length;
+        let top = final_data.slice(0, RESULT_TOPS);
+        let worst = final_data.slice(baselen - RESULT_WORSTS, baselen);
+        final_data = top;
+        final_data = final_data.concat(worst);
+        AddElement(result_area, "span", baselen + "件中" + final_data.length + "件を表示中", null, "font-size: 12px; color: red;");
+        AddElement(result_area, "br");
+    }else{
+        AddElement(result_area, "span", final_data.length + "件の結果", null, "font-size: 12px; color: red;");
+        AddElement(result_area, "br");
     }
     //結果の表示と、乗り換えなどの検出。
     //Todo : 路線解析結果に乗換などを検出しやすくするデータを追加することも考える。
     for (var i = 0; i < final_data.length; i++) {
-        if (!check_show_full_data.checked) {
-            if (is_overlength) {
-                if (i == 0) {
-                    AddElement(result_area, "span", "===[有用な経路]===", null, "font-size: 15px; color: blue;");
-                    AddElement(result_area, "br");
-                } else if (i == RESULT_TOPS) {
-                    AddElement(result_area, "span", "===[酷い経路]===", null, "font-size: 15px; color: blue;");
-                    AddElement(result_area, "br");
-                }
+        if (!check_show_full_data.checked && is_overlength) {
+            if (i == 0) {
+                AddElement(result_area, "span", "===[有用な経路]===", null, "font-size: 15px; color: blue;");
+                AddElement(result_area, "br");
+            } else if (i == RESULT_TOPS) {
+                AddElement(result_area, "span", "===[酷い経路]===", null, "font-size: 15px; color: blue;");
+                AddElement(result_area, "br");
             }
         }
         let r_ar = final_data[i][0];
