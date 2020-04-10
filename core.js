@@ -1,4 +1,4 @@
-const g_Version = "0.05f2";
+const g_Version = "0.06";
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
 
@@ -131,9 +131,11 @@ function GuideCore() {
             return -1;
         }
     });
+
+    var is_overlength = final_data.length > RESULT_TOPS + RESULT_WORSTS;
     //全ての結果を表示しない。
     if (!check_show_full_data.checked) {
-        if (final_data.length > RESULT_TOPS + RESULT_WORSTS) {
+        if (is_overlength) {
             let baselen = final_data.length;
             let top = final_data.slice(0, RESULT_TOPS);
             let worst = final_data.slice(baselen - RESULT_WORSTS, baselen);
@@ -146,6 +148,17 @@ function GuideCore() {
     //結果の表示と、乗り換えなどの検出。
     //Todo : 路線解析結果に乗換などを検出しやすくするデータを追加することも考える。
     for (var i = 0; i < final_data.length; i++) {
+        if (!check_show_full_data.checked) {
+            if (is_overlength) {
+                if (i == 0) {
+                    AddElement(result_area, "span", "===[有用な経路]===", null, "font-size: 15px; color: blue;");
+                    AddElement(result_area, "br");
+                } else if (i == RESULT_TOPS) {
+                    AddElement(result_area, "span", "===[酷い経路]===", null, "font-size: 15px; color: blue;");
+                    AddElement(result_area, "br");
+                }
+            }
+        }
         let r_ar = final_data[i][0];
         let data = final_data[i][1];
         var div = document.createElement("div");
@@ -278,7 +291,7 @@ function CheckNodes(tar, now, checked, nowres, ok, ss) {
     if (used == 0) {
         return false;
     }
-    if (ss >= 5000000) {
+    if (ss >= 10000000) {
         console.log("stacking");
         return false
     }
