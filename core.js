@@ -1,4 +1,4 @@
-const g_Version = "0.06b";
+const g_Version = "0.06c";
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
 
@@ -7,7 +7,7 @@ var check_show_full_data = null;
 function CreateMainForm() {
     var ok = true;
     main_div.style = "background-color: #DDEEFF;";
-    AddElement(main_div, "p", "乗り換え案内");
+    AddElement(main_div, "p", "[乗り換え案内]");
     if (typeof trains == 'undefined') {
         AddElement(main_div, "p", "古いバージョンです。");
         AddElement(main_div, "span", "管理者は更新してください。");
@@ -42,9 +42,9 @@ function CreateMainForm() {
 
     AddElement(main_div, "br");
     AddElement(main_div, "br");
-    AddElement(main_div, "span", "ver " + g_Version);
+    AddElement(main_div, "span", "version : " + g_Version);
     AddElement(main_div, "br");
-    AddElement(main_div, "span", "powered by thenyutheta");
+    AddElement(main_div, "b", "powered by theta");
     return ok;
 }
 
@@ -142,7 +142,7 @@ function GuideCore() {
         final_data = final_data.concat(worst);
         AddElement(result_area, "span", baselen + "件中" + final_data.length + "件を表示中", null, "font-size: 12px; color: red;");
         AddElement(result_area, "br");
-    }else{
+    } else {
         AddElement(result_area, "span", final_data.length + "件の結果", null, "font-size: 12px; color: red;");
         AddElement(result_area, "br");
     }
@@ -273,6 +273,8 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
     div.appendChild(document.createElement("br"));
 }
 
+//経路解析
+//TODO: bit列を用いたメモリ抑制。
 function CheckNodes(tar, now, checked, nowres, ok, ss) {
     checked[now] = true;
     if (tar == now) {
