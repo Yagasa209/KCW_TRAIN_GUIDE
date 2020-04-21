@@ -1,4 +1,4 @@
-const g_Version = "0.10-beta-2";
+const g_Version = "0.10-beta-3";
 
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
@@ -11,6 +11,8 @@ var main_div = document.getElementById("guide_main");
 var check_show_full_data = null;
 var check_use_old_search = null;
 var check_chaos_mode = null;
+
+var urlopti = null;
 
 function CreateMainForm() {
     var ok = true;
@@ -42,7 +44,10 @@ function CreateMainForm() {
         AddElement(main_div, "span", "　　");
         AddElement(main_div, "button", "FromとToを入替", "from_to_exchange");
         AddElement(main_div, "br");
+        AddElement(main_div, "button", "検索結果のurlを作成", "url_create_btn");
         AddElement(main_div, "br");
+        AddElement(main_div, "br");
+        AddElement(main_div, "a", "", "url_create_res", "font-size : 11px");
         AddElement(main_div, "div", null, "result_div");
         if (typeof DataPatcher != 'undefined') {
             DataPatcher();
@@ -60,11 +65,21 @@ function CreateMainForm() {
 
 //set up
 if (CreateMainForm()) {
+    urlopti = new Map();
+    let pair = location.search.substring(1).split('&');
+    for (var i = 0; pair[i]; i++) {
+        let kv = pair[i].split('=');
+        urlopti[kv[0]] = decodeURIComponent(kv[1]);
+    }
+
     var selector_from = document.getElementById("station_from");
     var selector_to = document.getElementById("station_to");
     var start_btn = document.getElementById("start_search");
     var result_area = document.getElementById("result_div");
+
     var from_to_ex = document.getElementById("from_to_exchange");
+    var url_cr_btn = document.getElementById("url_create_btn");
+    var url_cr_res = document.getElementById("url_create_res");
 
     var station_selector_data = [];
     //駅毎の、その駅に止まる列車の情報の配列。
@@ -107,16 +122,53 @@ if (CreateMainForm()) {
     start_btn.onclick = GuideCore;
 
     from_to_ex.onclick = function () {
-        let temp = selector_from.selectedIndex;
-        selector_from.selectedIndex = selector_to.selectedIndex;
-        selector_to.selectedIndex = temp;
+        let l_from_s = jQuery("#station_from option:selected").text();
+        jQuery("#station_from option:selected").text(jQuery("#station_to option:selected").text());
+        jQuery("#station_to option:selected").text(l_from_s);
+    }
+
+    url_cr_btn.onclick = function () {
+        let l_url = location.href.split('?')[0] + "?";
+        let keys = Array.from(Object.keys(urlopti));
+        for (var i = 0; i < keys.length; i++) {
+            if (keys[i] != "from" && keys[i] != "to") {
+                l_url += keys[i] + "=" + urlopti[keys[i]] + "&";
+            }
+        }
+        l_url += "from=" + jQuery("#station_from option:selected").text() + "&";
+        l_url += "to=" + jQuery("#station_to option:selected").text();
+        url_cr_res.href = l_url;
+        url_cr_res.textContent = l_url;
+    }
+
+    if (urlopti["from"] && urlopti["to"]) {
+        var from_ok = false;
+        var to_ok = false;
+        for (var i = 0; i < station_selector_data.length; i++) {
+            if (urlopti["from"] == station_selector_data[i][0]) {
+                from_ok = true;
+            }
+            if (urlopti["to"] == station_selector_data[i][0]) {
+                to_ok = true;
+            }
+            if (from_ok && to_ok) {
+                GuideCore(null, [urlopti["from"], urlopti["to"]]);
+                break;
+            }
+        }
     }
 }
 
 //core
-function GuideCore() {
+function GuideCore(e = null, auto_data = null) {
     var from_st = jQuery("#station_from option:selected").text();
     var to_st = jQuery("#station_to option:selected").text();
+    if (auto_data != null) {
+        from_st = auto_data[0];
+        to_st = auto_data[1];
+        jQuery("#station_from option:selected").text(from_st);
+        jQuery("#station_to option:selected").text(to_st);
+    }
     result_area.innerHTML = "";
     if (to_st == from_st) {
         result_area.textContent = "駅が同じなので乗り換えは必要ありません。";
@@ -313,8 +365,8 @@ function RootParser(root, data, cache = "", index = 0, pretrain = null, _inited 
 
         let l_change_vec = 0;
         //路線変更カウント
-        if (pretrain != null && pretrain != l_train_str && l_train_str != WALK_CMD) {
-            if (pretrain != WALK_CMD) {
+        if (pretrain != null && pretrain != l_train_str) {
+            if (pretrain != WALK_CMD && l_train_str != WALK_CMD) {
                 let l_train_pre = GetTrainByName(pretrain);
                 if (!l_train_pre.Direct || !l_train_pre.Direct[l_train_str] || l_train_pre.Direct[l_train_str] != root[index]) {
                     l_change_vec = 1;
