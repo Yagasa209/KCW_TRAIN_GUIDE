@@ -1,4 +1,4 @@
-const g_Version = "0.10-beta-3b";
+const g_Version = "0.10-beta-4";
 
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
@@ -44,8 +44,6 @@ function CreateMainForm() {
         AddElement(main_div, "span", "　　");
         AddElement(main_div, "button", "FromとToを入替", "from_to_exchange");
         AddElement(main_div, "br");
-        AddElement(main_div, "button", "検索結果のurlを作成", "url_create_btn");
-        AddElement(main_div, "br");
         AddElement(main_div, "br");
         AddElement(main_div, "a", "", "url_create_res", "font-size : 11px");
         AddElement(main_div, "div", null, "result_div");
@@ -78,7 +76,7 @@ if (CreateMainForm()) {
     var result_area = document.getElementById("result_div");
 
     var from_to_ex = document.getElementById("from_to_exchange");
-    var url_cr_btn = document.getElementById("url_create_btn");
+
     var url_cr_res = document.getElementById("url_create_res");
 
     var station_selector_data = [];
@@ -127,32 +125,20 @@ if (CreateMainForm()) {
         jQuery("#station_to option:selected").text(l_from_s);
     }
 
-    url_cr_btn.onclick = function () {
-        let l_url = location.href.split('?')[0] + "?";
-        let keys = Array.from(Object.keys(urlopti));
-        for (var i = 0; i < keys.length; i++) {
-            if (keys[i] != "from" && keys[i] != "to") {
-                l_url += keys[i] + "=" + urlopti[keys[i]] + "&";
-            }
-        }
-        l_url += "from=" + jQuery("#station_from option:selected").text() + "&";
-        l_url += "to=" + jQuery("#station_to option:selected").text();
-        url_cr_res.href = l_url;
-        url_cr_res.textContent = l_url;
-    }
-
-    if (urlopti["from"] && urlopti["to"]) {
+    if (urlopti["from"] || urlopti["to"]) {
         let from_ok = false;
         let to_ok = false;
         for (var i = 0; i < station_selector_data.length; i++) {
             if (urlopti["from"] == station_selector_data[i][0]) {
+                jQuery("#station_from option:selected").text(urlopti["from"]);
                 from_ok = true;
             }
             if (urlopti["to"] == station_selector_data[i][0]) {
+                jQuery("#station_to option:selected").text(urlopti["to"]);
                 to_ok = true;
             }
             if (from_ok && to_ok) {
-                GuideCore(null, [urlopti["from"], urlopti["to"]]);
+                GuideCore();
                 break;
             }
         }
@@ -160,15 +146,24 @@ if (CreateMainForm()) {
 }
 
 //core
-function GuideCore(e = null, auto_data = null) {
+function GuideCore() {
     var from_st = jQuery("#station_from option:selected").text();
     var to_st = jQuery("#station_to option:selected").text();
-    if (auto_data != null) {
-        from_st = auto_data[0];
-        to_st = auto_data[1];
-        jQuery("#station_from option:selected").text(from_st);
-        jQuery("#station_to option:selected").text(to_st);
+
+    //urlcreate
+    let l_url = location.href.split('?')[0] + "?";
+    let keys = Array.from(Object.keys(urlopti));
+    for (var i = 0; i < keys.length; i++) {
+        if (keys[i] != "from" && keys[i] != "to") {
+            l_url += keys[i] + "=" + urlopti[keys[i]] + "&";
+        }
     }
+    l_url += "from=" + from_st + "&";
+    l_url += "to=" + to_st;
+    url_cr_res.href = l_url;
+    url_cr_res.textContent = "検索結果のリンク";
+
+    //init
     result_area.innerHTML = "";
     if (to_st == from_st) {
         result_area.textContent = "駅が同じなので乗り換えは必要ありません。";
@@ -609,7 +604,7 @@ function GetRubyFromWalkStation(station) {
     for (var i = 0; i < walk_data.length; i++) {
         var tar = walk_data[i][0].indexOf(station);
         if (tar >= 0) {
-            walk_data[i][1][tar];
+            res = walk_data[i][1][tar];
         }
     }
     return res;
@@ -632,15 +627,6 @@ function GetArraysSharedElements(arr1, arr2) {
     }
 }
 
-//Element helper functions
-
-function SetSelectorOption(selctor, val, text) {
-    var opt = document.createElement("option");
-    opt.value = val;
-    opt.text = text;
-    selctor.appendChild(opt);
-}
-
 function LoopNum(val, min, max) {
     if (val > max) {
         return min;
@@ -649,6 +635,15 @@ function LoopNum(val, min, max) {
     } else {
         return val;
     }
+}
+
+//Element helper functions
+
+function SetSelectorOption(selctor, val, text) {
+    var opt = document.createElement("option");
+    opt.value = val;
+    opt.text = text;
+    selctor.appendChild(opt);
 }
 
 function AddElement(parent, tag, text = null, id = null, style = null) {
