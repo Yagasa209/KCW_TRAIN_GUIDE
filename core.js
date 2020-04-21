@@ -1,4 +1,4 @@
-const g_Version = "0.10-beta-1f2";
+const g_Version = "0.10-beta-2";
 
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
@@ -313,7 +313,7 @@ function RootParser(root, data, cache = "", index = 0, pretrain = null, _inited 
 
         let l_change_vec = 0;
         //路線変更カウント
-        if (pretrain != null && pretrain != l_train_str) {
+        if (pretrain != null && pretrain != l_train_str && l_train_str != WALK_CMD) {
             if (pretrain != WALK_CMD) {
                 let l_train_pre = GetTrainByName(pretrain);
                 if (!l_train_pre.Direct || !l_train_pre.Direct[l_train_str] || l_train_pre.Direct[l_train_str] != root[index]) {
