@@ -339,3 +339,33 @@ trains.push({
     ["九条", "くじょう", "02"]
   ]
 });
+
+
+var walk_data = [];
+
+/*
+  徒歩圏内データ登録エリア
+  syntax : 
+  walk_data.push([
+    [station1, station2],
+    [sort_name1, sort_name2],
+  ]);
+*/
+
+//1
+walk_data.push([
+  ["初原", "初春"],
+  ["はつはら", "ういはる"],
+]);
+
+//2
+walk_data.push([
+  ["岸川", "矢野"],
+  ["きしかわ", "やの"],
+]);
+
+//3
+walk_data.push([
+  ["花園城址公園", "明神"],
+  ["はのぞのじょうしこうえん", "みょうじん"],
+]);

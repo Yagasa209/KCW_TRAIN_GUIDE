@@ -1,9 +1,17 @@
-const g_Version = "0.06c";
+const g_Version = "0.10-beta-1";
+
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
 
+const WALK_CMD = "%%WALK_DATA%%";
+
 var main_div = document.getElementById("guide_main");
+
+//options
 var check_show_full_data = null;
+var check_use_old_search = null;
+var check_chaos_mode = null;
+
 function CreateMainForm() {
     var ok = true;
     main_div.style = "background-color: #DDEEFF;";
@@ -23,10 +31,12 @@ function CreateMainForm() {
         AddElement(main_div, "select", null, "station_to");
         AddElement(main_div, "br");
         AddElement(main_div, "br");
-        check_show_full_data = AddElement(main_div, "input");
-        check_show_full_data.type = "checkbox";
-        let span_show_full_data = AddElement(main_div, "span", "全ての結果を表示");
-        span_show_full_data.onclick = function () { check_show_full_data.checked = !check_show_full_data.checked; }
+        check_show_full_data = AddExCheckBox(main_div, "全ての結果を表示");
+        AddElement(main_div, "br");
+        check_use_old_search = AddExCheckBox(main_div, "新しい検索方法を利用しない");
+        AddElement(main_div, "br");
+        check_chaos_mode = AddExCheckBox(main_div, "強引に乗換数を増やす");
+        AddElement(main_div, "br");
         AddElement(main_div, "br");
         AddElement(main_div, "button", "検索する", "start_search");
         AddElement(main_div, "span", "　　");
@@ -68,6 +78,15 @@ if (CreateMainForm()) {
                 station_selector_data.push([name, trains[i].stations[g][1]]);
             }
             station_infos[name].push(trains[i].name);
+        }
+    }
+
+
+    for (var i = 0; i < walk_data.length; i++) {
+        for (var k = 0; k < walk_data[i][0].length; k++) {
+            if (!station_infos[walk_data[i][0][k]]) {
+                station_selector_data.push([walk_data[i][0][k], walk_data[i][1][k]]);
+            }
         }
     }
 
@@ -115,7 +134,13 @@ function GuideCore() {
     for (var i = 0; i < result.length; i++) {
         let r_ar = result[i].split(",");
         let debug = [];
-        let data = CheckChange(r_ar, debug);
+        let data = null;
+        //OLD
+        if (check_use_old_search.checked) {
+            data = CheckChange(r_ar, debug);
+        } else {
+            data = RootParser(r_ar, debug);
+        }
         final_data.push([r_ar, data]);
     }
     final_data.sort(function (a, b) {
@@ -164,30 +189,171 @@ function GuideCore() {
         div.style.backgroundColor = "#F1F1F1";
         div.innerHTML = "経路 <b>" + (i + 1) + "</b> : 駅数 " + r_ar.length + "、 乗り換え数 " + data[data.length - 1] + "<br>"
         result_area.appendChild(div);
-        for (var r = 0; r < r_ar.length; r++) {
-            var t_data = GetTrainByName(data[r]);
-            if (r == 0) {
-                CreateResult(div, t_data, r_ar[r], "乗車", t_data);
-                continue;
-            }
-            if (r == r_ar.length - 1) {
-                CreateResult(div, t_data, r_ar[r], "降車");
-                break;
-            } else {
-                if (data[r + 1] != data[r]) {
-                    if (t_data.Direct == undefined || t_data.Direct[data[r + 1]] != r_ar[r]) {
-                        CreateResult(div, t_data, r_ar[r], "乗換", GetTrainByName(data[r + 1]));
-                    } else {
-                        CreateResult(div, t_data, r_ar[r], "直通", GetTrainByName(data[r + 1]));
-                    }
+        //OLD_VER
+        if (check_use_old_search.checked) {
+            for (var r = 0; r < r_ar.length; r++) {
+                var t_data = GetTrainByName(data[r]);
+                if (r == 0) {
+                    CreateResult(div, t_data, r_ar[r], "乗車", t_data);
+                    continue;
+                }
+                if (r == r_ar.length - 1) {
+                    CreateResult(div, t_data, r_ar[r], "降車");
+                    break;
                 } else {
-                    CreateResult(div, t_data, r_ar[r]);
+                    if (data[r + 1] != data[r]) {
+                        if (t_data.Direct == undefined || t_data.Direct[data[r + 1]] != r_ar[r]) {
+                            CreateResult(div, t_data, r_ar[r], "乗換", GetTrainByName(data[r + 1]));
+                        } else {
+                            CreateResult(div, t_data, r_ar[r], "直通", GetTrainByName(data[r + 1]));
+                        }
+                    } else {
+                        CreateResult(div, t_data, r_ar[r]);
+                    }
                 }
             }
+        } else {
+            //NEW_VER
+            for (var r = 0; r < data.length - 1; r++) {
+                let l_train_o = null;
+                if (data[r] != WALK_CMD) {
+                    l_train_o = GetTrainByName(data[r]);
+                }
+
+                //first
+                if (r == 0) {
+                    if (data[r] != WALK_CMD) {
+                        CreateResult(div, l_train_o, r_ar[r], "乗車", l_train_o);
+                    } else {
+                        CreateResult(div, WALK_CMD, r_ar[r]);
+                    }
+                }
+
+                //normal
+                if (r > 0) {
+                    let l_pretrain_o = null;
+                    if (data[r - 1] != WALK_CMD) {
+                        l_pretrain_o = GetTrainByName(data[r - 1]);
+                    }
+                    if (data[r - 1] == data[r]) {
+                        CreateResult(div, l_pretrain_o, r_ar[r]);
+                    } else {
+                        if (data[r - 1] == WALK_CMD) {
+                            CreateResult(div, WALK_CMD, r_ar[r], "乗車", l_train_o);
+                        } else if (data[r] == WALK_CMD) {
+                            CreateResult(div, l_pretrain_o, r_ar[r], "降車");
+                        } else {
+                            if (!l_pretrain_o.Direct || !l_pretrain_o.Direct[data[r]] || l_pretrain_o.Direct[data[r]] != r_ar[r]) {
+                                CreateResult(div, l_pretrain_o, r_ar[r], "乗換", l_train_o);
+                            } else {
+                                CreateResult(div, l_pretrain_o, r_ar[r], "直通", l_train_o);
+                            }
+                        }
+                    }
+                }
+                //最終要素は乗換カウントである。
+                //last
+                if (r == data.length - 2) {
+                    if (data[r] != WALK_CMD) {
+                        CreateResult(div, l_train_o, r_ar[r + 1], "降車");
+                    } else {
+                        CreateResult(div, WALK_CMD, r_ar[r + 1]);
+                    }
+                }
+
+            }
+
         }
+
+
         result_area.appendChild(document.createElement("br"));
     }
 };
+
+function RootParser(root, data, cache = "", index = 0, pretrain = null, _inited = false, change_c = 0) {
+    data = data || [];
+    if (index >= root.length - 1) {
+        data.push(cache + "," + change_c);
+        return;
+    }
+    let l_trains_a = station_infos[root[index]];
+    let l_trains_b = station_infos[root[index + 1]];
+    let l_walks_a = GetWalkInfo(root[index]);
+    let l_walk_data = null;
+    if (l_walks_a != null) {
+        l_walk_data = GetArraysSharedElements(l_walks_a, [root[index + 1]]);
+    }
+    let l_share_trains = GetArraysSharedElements(l_trains_a, l_trains_b);
+    let l_trains_walks = [];
+    if (l_share_trains != null) {
+        l_trains_walks = l_trains_walks.concat(l_share_trains);
+    }
+    if (l_walk_data != null) {
+        l_trains_walks.push(WALK_CMD);
+    }
+    for (var i = 0; i < l_trains_walks.length; i++) {
+        let l_train_str = l_trains_walks[i];
+        if (l_train_str != WALK_CMD) {
+            //この電車にとって隣接駅であるか
+            let l_train = GetTrainByName(l_train_str);
+            let l_st_index_a = IndexOfStation(l_train, root[index]);
+            let l_st_index_b = IndexOfStation(l_train, root[index + 1]);
+            if (l_train.loop) {
+                let l_loop_n = LoopNum(l_st_index_a + 1, 0, l_train.stations.length - 1);
+                let l_loop_p = LoopNum(l_st_index_a - 1, 0, l_train.stations.length - 1);
+                if (l_st_index_b != l_loop_n && l_st_index_b != l_loop_p) {
+                    continue;
+                }
+            } else {
+                if (Math.abs(l_st_index_a - l_st_index_b) != 1) {
+                    continue;
+                }
+            }
+        }
+
+        let l_change_vec = 0;
+        //路線変更カウント
+        if (pretrain != null && pretrain != l_train_str) {
+            if (pretrain != WALK_CMD) {
+                let l_train_pre = GetTrainByName(pretrain);
+                if (!l_train_pre.Direct || !l_train_pre.Direct[l_train_str] || l_train_pre.Direct[l_train_str] != root[index]) {
+                    l_change_vec = 1;
+                }
+            } else {
+                if (_inited) {
+                    l_change_vec = 1;
+                } else {
+                    _inited = true;
+                }
+            }
+        }
+        RootParser(root, data, cache + "," + l_train_str, index + 1, l_train_str, _inited, change_c + l_change_vec);
+    }
+    if (index == 0) {
+        let l_base = 999999999;
+        if (check_chaos_mode.checked) {
+            l_base = -1;
+        }
+        let l_ind = 0;
+        for (var i = 0; i < data.length; i++) {
+            let l_data_split = data[i].split(",");
+            let l_num = parseInt(l_data_split[l_data_split.length - 1]);
+            if (check_chaos_mode.checked) {
+                if (l_num > l_base) {
+                    l_base = l_num
+                    l_ind = i;
+                }
+            } else {
+                if (l_num < l_base) {
+                    l_base = l_num
+                    l_ind = i;
+                }
+            }
+        }
+        return data[l_ind].replace(/^,/, "").split(",");
+    }
+}
+//OLD DATA
 //路線データを解析。(再帰関数)
 //Todo : 徒歩データ対応と可読性改善(再実装も視野に)
 function CheckChange(arr, data, cache = "", cline = 0, index = 0, nowline = null) {
@@ -229,13 +395,23 @@ function CheckChange(arr, data, cache = "", cline = 0, index = 0, nowline = null
     //乗り換えが少ない物を選択。
     if (index == 0) {
         var min = 999999999;
+        if (check_chaos_mode.checked) {
+            min = -1;
+        }
         var hei = -1;
         for (var i = 0; i < data.length; i++) {
             var s = data[i].split(",");
             var num = parseInt(s[s.length - 1]);
-            if (num <= min) {
-                min = num;
-                hei = i;
+            if (check_chaos_mode.checked) {
+                if (num > min) {
+                    min = num;
+                    hei = i;
+                }
+            } else {
+                if (num < min) {
+                    min = num;
+                    hei = i;
+                }
             }
         }
         return data[hei].replace(/^,/, "").split(",");
@@ -246,20 +422,24 @@ function CheckChange(arr, data, cache = "", cline = 0, index = 0, nowline = null
 function CreateResult(div, train, station, opt = null, subtrain = null) {
     var span = document.createElement("span");
     span.innerHTML = "";
-    var sta_info = IndexOfStation(train, station);
-    //Idや■を追加
-    if (train.id == "") {
-        span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.stations[sta_info][2] + "</span>";
-    } else if (train.stations[sta_info][2] == "") {
-        span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.id + " </span>";
+    if (train != WALK_CMD) {
+        var sta_info = IndexOfStation(train, station);
+        //Idや■を追加
+        if (train.id == "") {
+            span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.stations[sta_info][2] + "</span>";
+        } else if (train.stations[sta_info][2] == "") {
+            span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.id + " </span>";
+        } else {
+            span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.id + "-" + train.stations[sta_info][2] + "</span>";
+        }
+        //駅名を追加
+        if (train.stations[sta_info][2] == "") {
+            span.innerHTML += "<span title=\"" + train.stations[sta_info][1] + "\">" + station + "</span>";
+        } else {
+            span.innerHTML += "<span title=\"" + train.stations[sta_info][1] + "\">\t" + station + "</span>";
+        }
     } else {
-        span.innerHTML += "<span style=\"color:" + train.color + ";\">■" + train.id + "-" + train.stations[sta_info][2] + "</span>";
-    }
-    //駅名を追加
-    if (train.stations[sta_info][2] == "") {
-        span.innerHTML += "<span title=\"" + train.stations[sta_info][1] + "\">" + station + "</span>";
-    } else {
-        span.innerHTML += "<span title=\"" + train.stations[sta_info][1] + "\">\t" + station + "</span>";
+        span.innerHTML += "<span>●徒歩</span>\t<span title=\"" + GetRubyFromWalkStation(station) + "\">" + station + "</span>";
     }
     //情報を追加
     if (opt != null) {
@@ -301,6 +481,12 @@ function CheckNodes(tar, now, checked, nowres, ok, ss) {
 //路線を無視した隣接駅検索。
 function GetEdgesByStation(name) {
     var res = [];
+    let walks = GetWalkInfo(name);
+    if (!check_use_old_search.checked) {
+        if (walks != null) {
+            res = res.concat(walks);
+        }
+    }
     for (var i = 0; i < station_infos[name].length; i++) {
         var train = GetTrainByName(station_infos[name][i]);
         var index = IndexOfStation(train, name);
@@ -347,6 +533,55 @@ function IndexOfStation(train, name) {
     return -1;
 }
 
+function GetWalkInfo(station) {
+    var res = [];
+    for (var i = 0; i < walk_data.length; i++) {
+        var tar = walk_data[i][0].indexOf(station);
+        if (tar >= 0) {
+            for (var k = 0; k < walk_data[i][0].length; k++) {
+                if (k != tar) {
+                    res.push(walk_data[i][0][k]);
+                }
+            }
+        }
+    }
+    if (res.length == 0) {
+        return null;
+    } else {
+        return res;
+    }
+}
+
+function GetRubyFromWalkStation(station) {
+    var res = null;
+    for (var i = 0; i < walk_data.length; i++) {
+        var tar = walk_data[i][0].indexOf(station);
+        if (tar >= 0) {
+            walk_data[i][1][tar];
+        }
+    }
+    return res;
+}
+
+function GetArraysSharedElements(arr1, arr2) {
+    var res = [];
+    if (arr1.length < arr2.length) {
+        return GetArraysSharedElements(arr2, arr1);
+    }
+    for (var i = 0; i < arr1.length; i++) {
+        if (arr2.indexOf(arr1[i]) >= 0) {
+            res.push(arr1[i]);
+        }
+    }
+    if (res.length == 0) {
+        return null;
+    } else {
+        return res;
+    }
+}
+
+//Element helper functions
+
 function SetSelectorOption(selctor, val, text) {
     var opt = document.createElement("option");
     opt.value = val;
@@ -371,4 +606,12 @@ function AddElement(parent, tag, text = null, id = null, style = null) {
     if (style != null) { t.style = style; }
     parent.appendChild(t);
     return t;
+}
+
+function AddExCheckBox(parent, text) {
+    let chb = AddElement(parent, "input");
+    chb.type = "checkbox";
+    let span_d = AddElement(main_div, "span", text);
+    span_d.onclick = function () { chb.checked = !chb.checked; }
+    return chb;
 }
