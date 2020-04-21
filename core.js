@@ -1,4 +1,4 @@
-const g_Version = "0.10-beta-3";
+const g_Version = "0.10-beta-3b";
 
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
@@ -15,7 +15,7 @@ var check_chaos_mode = null;
 var urlopti = null;
 
 function CreateMainForm() {
-    var ok = true;
+    let ok = true;
     main_div.style = "background-color: #DDEEFF;";
     AddElement(main_div, "p", "[乗り換え案内]");
     if (typeof trains == 'undefined') {
@@ -142,8 +142,8 @@ if (CreateMainForm()) {
     }
 
     if (urlopti["from"] && urlopti["to"]) {
-        var from_ok = false;
-        var to_ok = false;
+        let from_ok = false;
+        let to_ok = false;
         for (var i = 0; i < station_selector_data.length; i++) {
             if (urlopti["from"] == station_selector_data[i][0]) {
                 from_ok = true;
