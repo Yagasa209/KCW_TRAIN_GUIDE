@@ -1,4 +1,4 @@
-const g_Version = "0.10-beta-4";
+const g_Version = "0.10-beta-4b";
 
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
@@ -219,7 +219,6 @@ function GuideCore() {
         AddElement(result_area, "br");
     }
     //結果の表示と、乗り換えなどの検出。
-    //Todo : 路線解析結果に乗換などを検出しやすくするデータを追加することも考える。
     for (var i = 0; i < final_data.length; i++) {
         if (!check_show_full_data.checked && is_overlength) {
             if (i == 0) {
@@ -528,8 +527,8 @@ function CheckNodes(tar, now, checked, nowres, ok, ss) {
 //路線を無視した隣接駅検索。
 function GetEdgesByStation(name) {
     var res = [];
-    let walks = GetWalkInfo(name);
     if (!check_use_old_search.checked) {
+        let walks = GetWalkInfo(name);
         if (walks != null) {
             res = res.concat(walks);
         }
@@ -587,7 +586,9 @@ function GetWalkInfo(station) {
         if (tar >= 0) {
             for (var k = 0; k < walk_data[i][0].length; k++) {
                 if (k != tar) {
-                    res.push(walk_data[i][0][k]);
+                    if (res.indexOf(walk_data[i][0][k]) == -1) {
+                        res.push(walk_data[i][0][k]);
+                    }
                 }
             }
         }
