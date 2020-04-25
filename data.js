@@ -1,7 +1,7 @@
 
 var trains = [];
 //路線データ登録エリア
-/* template
+/* syntax :
 
 trains.push({
     name : "name",
@@ -338,6 +338,7 @@ trains.push({
     ["ひまわりの里", "ひまわりのさと", "01"],
     ["菊舍", "きくやど", "02"],
     ["蓮水面台", "はすみなもだいえき", "03"],
+    ["原雛", "はらびな", "04"],
   ]
 });
 
@@ -357,11 +358,13 @@ var walk_data = [];
 
 /*
   徒歩圏内データ登録エリア
-  syntax : 
+  syntax :
+  
   walk_data.push([
     [station1, station2],
     [sort_name1, sort_name2],
   ]);
+  
 */
 
 //1
