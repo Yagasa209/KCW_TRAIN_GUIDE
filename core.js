@@ -1,4 +1,4 @@
-const g_Version = "0.10";
+const g_Version = "0.10b";
 
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
@@ -214,7 +214,7 @@ function GuideCore() {
                 AddElement(result_area, "span", "####有用な経路####", null, "font-size: 15px; color: blue;");
                 AddElement(result_area, "br");
             } else if (i == RESULT_TOPS) {
-                AddElement(result_area, "span", "####酷い経路####", null, "font-size: 15px; color: red;");
+                AddElement(result_area, "span", "####回り道経路####", null, "font-size: 15px; color: red;");
                 AddElement(result_area, "br");
             }
         }
@@ -222,9 +222,8 @@ function GuideCore() {
         let data = final_data[i][1];
         let div = document.createElement("div");
         div.style.backgroundColor = "#F1F1F1";
-        div.innerHTML = "経路 <b>" + (i + 1) + "</b> : 駅数 " + r_ar.length + "、 乗り換え数 " + data[data.length - 1] + "<br>"
+        div.innerHTML = "経路 <b>" + (i + 1) + "</b> : 駅数 " + r_ar.length + " / 乗り換え数 " + data[data.length - 1] + "<br>"
         result_area.appendChild(div);
-        //NEW_VER
         for (var r = 0; r < data.length - 1; r++) {
             let l_train_o = null;
             if (data[r] != WALK_CMD) {
