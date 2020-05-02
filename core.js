@@ -1,4 +1,4 @@
-const g_Version = "0.10b";
+const g_Version = "0.10c";
 
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
@@ -161,14 +161,14 @@ function GuideCore() {
     //init
     result_area.innerHTML = "";
     if (to_st == from_st) {
-        result_area.textContent = "駅が同じなので乗り換えは必要ありません。";
+        result_area.textContent = "駅が同じなので移動する必要はありません。";
         return;
     }
     let result = [];
     //経路解析。
     CheckNodes(to_st, from_st, new Array(), from_st, result, 0);
     if (result.length == 0) {
-        result_area.textContent = "駅が繋がっていないので乗り継ぎ出来ません。";
+        result_area.textContent = "経路が見つかりませんでした。";
         return;
     }
     let final_data = [];
