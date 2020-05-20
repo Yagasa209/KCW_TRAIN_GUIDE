@@ -1,4 +1,4 @@
-const g_Version = "0.10c2";
+const g_Version = "0.11b";
 
 const RESULT_TOPS = 8;
 const RESULT_WORSTS = 4;
@@ -17,6 +17,7 @@ var selector_from = null;
 var selector_to = null;
 var result_area = null;
 var url_cr_res = null;
+var all_station_count = null;
 
 //Objects
 var urlopti = null;
@@ -42,11 +43,11 @@ function CreateMainForm() {
         selector_to = AddElement(main_div, "select");
         AddElement(main_div, "br");
         AddElement(main_div, "br");
-        check_show_full_data = AddExCheckBox(main_div, "全ての結果を表示");
+        check_show_full_data = AddExCheckBox(main_div, "[全ての結果を表示(危険)]", "color: red;");
         AddElement(main_div, "br");
-        check_dont_use_walk = AddExCheckBox(main_div, "歩くルートを含まない");
+        check_dont_use_walk = AddExCheckBox(main_div, "[歩く経路を含まない]");
         AddElement(main_div, "br");
-        check_chaos_mode = AddExCheckBox(main_div, "強引に乗換数を増やす");
+        check_chaos_mode = AddExCheckBox(main_div, "[強引に乗換数を増やす]");
         AddElement(main_div, "br");
         AddElement(main_div, "br");
         AddElement(main_div, "button", "検索する").onclick = GuideCore;
@@ -57,9 +58,15 @@ function CreateMainForm() {
             selector_to.options.selectedIndex = l_from_s;
         }
         AddElement(main_div, "br");
-        AddElement(main_div, "br");
         url_cr_res = AddElement(main_div, "a", "", null, "font-size : 11px");
+        AddElement(main_div, "br");
         result_area = AddElement(main_div, "div");
+
+        AddElement(main_div, "br");
+        AddElement(main_div, "span", "路線総数 : " + trains.length);
+        AddElement(main_div, "br");
+        all_station_count = AddElement(main_div, "span");
+
         if (typeof DataPatcher != 'undefined') {
             DataPatcher();
         }
@@ -113,6 +120,8 @@ if (CreateMainForm()) {
             return 1;
         }
     });
+
+    all_station_count.textContent = "駅総数 : " + station_selector_data.length;
 
     //セレクター作成。
     for (var i = 0; i < station_selector_data.length; i++) {
@@ -221,7 +230,7 @@ function GuideCore() {
         let r_ar = final_data[i][0];
         let data = final_data[i][1];
         let div = document.createElement("div");
-        div.style.backgroundColor = "#F1F1F1";
+        div.style.backgroundColor = "#F5F5F5";
         div.innerHTML = "経路 <b>" + (i + 1) + "</b> : 駅数 " + r_ar.length + " / 乗り換え数 " + data[data.length - 1] + "<br>"
         result_area.appendChild(div);
         for (var r = 0; r < data.length - 1; r++) {
@@ -548,10 +557,10 @@ function AddElement(parent, tag, text = null, id = null, style = null) {
     return t;
 }
 
-function AddExCheckBox(parent, text) {
+function AddExCheckBox(parent, text, style = null) {
     let chb = AddElement(parent, "input");
     chb.type = "checkbox";
-    let span_d = AddElement(main_div, "span", text);
+    let span_d = AddElement(parent, "span", text, null, style);
     span_d.onclick = function () { chb.checked = !chb.checked; }
     return chb;
 }
