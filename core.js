@@ -1,7 +1,6 @@
-const g_Version = "0.2-beta-2";
+const g_Version = "0.2-beta-3";
 
 const RESULT_GROUP = 10;
-
 const WALK_CMD = "%%WALK_DATA%%";
 
 const main_div = document.getElementById("guide_main");
@@ -72,7 +71,7 @@ function CreateMainForm() {
         AddElement(main_div, "br");
         all_station_count = AddElement(main_div, "span");
 
-        if (typeof DataPatcher != 'undefined') { DataPatcher(); }
+        if (typeof DataPatcher == 'function') { DataPatcher(); }
         ok = true;
     }
 
@@ -108,19 +107,28 @@ if (CreateMainForm()) {
                 station_edge_infos[name] = new Set();
             }
             station_infos[name].push(trains[i].name);
-            if (g - 1 >= 0) { station_edge_infos[name].add(trains[i].stations[g - 1][0]); }
-            if (g + 1 < trains[i].stations.length) { station_edge_infos[name].add(trains[i].stations[g + 1][0]); }
+            if (g - 1 >= 0) {
+                station_edge_infos[name].add(trains[i].stations[g - 1][0]);
+            } else if (trains[i].loop) {
+                station_edge_infos[name].add(trains[i].stations[trains[i].stations.length - 1][0]);
+            }
+            if (g + 1 < trains[i].stations.length) {
+                station_edge_infos[name].add(trains[i].stations[g + 1][0]);
+            } else if (trains[i].loop) {
+                station_edge_infos[name].add(trains[i].stations[0][0]);
+            }
         }
     }
     for (var i = 0; i < walk_data.length; i++) {
         let walkAr = walk_data[i][0]
-        for (var k = 0; k < walkAr.length; k++) {
+        for (let k = 0; k < walkAr.length; k++) {
             if (station_infos[walkAr[k]] == undefined) {
                 station_selector_data.push([walkAr[k], walkAr[k]]);
                 station_edge_infos[walkAr[k]] = new Set();
             }
-            if (k - 1 >= 0) { station_edge_infos[walkAr[k]].add(WALK_CMD + walkAr[k - 1]); }
-            if (k + 1 < walkAr.length) { station_edge_infos[walkAr[k]].add(WALK_CMD + walkAr[k + 1]); }
+            for (let j = 0; j < walkAr.length; j++) {
+                if (k != j) { station_edge_infos[walkAr[k]].add(WALK_CMD + walkAr[j]); }
+            }
         }
     }
 
@@ -180,14 +188,14 @@ function GuideCore() {
     //init
     result_area.innerHTML = "";
     if (to_st == from_st) {
-        result_area.textContent = "駅が同じなので移動する必要はありません。";
+        result_area.innerHTML = "<b>Info : 駅が同じなので移動する必要はありません。</b>";
         return;
     }
     let result = [];
     //経路解析。
     CheckNodes(to_st, from_st, new Array(), result, 0);
     if (result.length == 0) {
-        result_area.textContent = "経路が見つかりませんでした。";
+        result_area.innerHTML = "<b>Info : 経路が見つかりませんでした。</b>";
         return;
     }
     final_data = [];
@@ -337,9 +345,7 @@ function RootParser(root, data, cache = "", index = 0, pretrain = null, _inited 
     if (l_share_trains != null) {
         l_trains_walks = l_trains_walks.concat(l_share_trains);
     }
-    if (l_walk_data != null) {
-        l_trains_walks.push(WALK_CMD);
-    }
+    if (l_walk_data != null) { l_trains_walks.push(WALK_CMD); }
     for (var i = 0; i < l_trains_walks.length; i++) {
         let l_train_str = l_trains_walks[i];
         if (l_train_str != WALK_CMD) {
@@ -376,9 +382,7 @@ function RootParser(root, data, cache = "", index = 0, pretrain = null, _inited 
     }
     if (index == 0) {
         let l_base = 999999999;
-        if (check_chaos_mode.checked) {
-            l_base = -1;
-        }
+        if (check_chaos_mode.checked) { l_base = -1; }
         let l_ind = 0;
         for (var i = 0; i < data.length; i++) {
             let l_data_split = data[i].split(",");
@@ -422,9 +426,7 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
         span.innerHTML += "<span>●徒歩</span>\t<span title=\"" + GetRubyFromWalkStation(station) + "\">" + station + "</span>";
     }
     //情報を追加
-    if (opt != null) {
-        span.innerHTML += " <b><u>[" + opt + "]</u></b>";
-    }
+    if (opt != null) { span.innerHTML += " <b><u>[" + opt + "]</u></b>"; }
     //他の路線の情報を追加
     if (subtrain != null) {
         span.innerHTML += " <span style=\"color:" + subtrain.color + ";\">■" + subtrain.id + ":" + subtrain.name + "</span>";
