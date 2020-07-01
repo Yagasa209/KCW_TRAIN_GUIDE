@@ -1,4 +1,4 @@
-const g_Version = "0.2-beta-3";
+const g_Version = "0.2-beta-4";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = "%%WALK_DATA%%";
@@ -28,7 +28,6 @@ var station_edge_infos = null;
 var TrainObjMap = null;
 //最終結果
 var final_data = [];
-var debug_temp = [];
 
 function CreateMainForm() {
     let ok = true;
@@ -99,7 +98,7 @@ if (CreateMainForm()) {
     //路線データから駅を調べる。
     for (var i = 0; i < trains.length; i++) {
         TrainObjMap[trains[i].name] = trains[i];
-        for (var g = 0; g < trains[i].stations.length; g++) {
+        for (let g = 0; g < trains[i].stations.length; g++) {
             let name = trains[i].stations[g][0];
             if (station_infos[name] == undefined) {
                 station_infos[name] = [];
@@ -201,9 +200,9 @@ function GuideCore() {
     final_data = [];
     //結果毎に路線解析
     for (var i = 0; i < result.length; i++) {
-        debug_temp = [];
-        let l_train_r_data = RootParser(result[i], debug_temp);
-        final_data.push([result[i], l_train_r_data]);
+        let l_trains_data = [];
+        RootParser(result[i], l_trains_data);
+        final_data.push([result[i], l_trains_data[0]]);
     }
     let l_all_result_groups = final_data.length / RESULT_GROUP;
     AddElement(result_area, "b", "Result Group\u00a0:\u00a0");
@@ -229,11 +228,10 @@ function GuideCore() {
 
 function SortResults(type) {
     if (type == "CHA") {
-        //a = change, b = sta
         final_data.sort(function (a, b) {
-            if (parseInt(a[1][a[1].length - 1]) > parseInt(b[1][b[1].length - 1])) {
+            if (a[1][0] > b[1][0]) {
                 return 1;
-            } else if (parseInt(a[1][a[1].length - 1]) < parseInt(b[1][b[1].length - 1])) {
+            } else if (a[1][0] < b[1][0]) {
                 return -1;
             }
 
@@ -251,14 +249,14 @@ function SortResults(type) {
                 return -1;
             }
 
-            if (parseInt(a[1][a[1].length - 1]) > parseInt(b[1][b[1].length - 1])) {
+            if (a[1][0] > b[1][0]) {
                 return 1;
-            } else if (parseInt(a[1][a[1].length - 1]) < parseInt(b[1][b[1].length - 1])) {
+            } else {
                 return -1;
             }
         });
     }
-    result_selector.selectedIndex = 0;
+    //result_selector.selectedIndex = 0;
     result_selector.onchange();
 }
 
@@ -266,15 +264,15 @@ function ShowRootResults(start) {
     root_result_area.innerHTML = "";
     for (var i = start * RESULT_GROUP; i < (start + 1) * RESULT_GROUP && i < final_data.length; i++) {
         let l_root_stations = final_data[i][0];
-        let l_root_trains = final_data[i][1];
+        let l_root_trains = final_data[i][1][1];
         let l_r_div = document.createElement("div");
         l_r_div.style.backgroundColor = "#F5F5F5";
-        l_r_div.innerHTML = "経路 <b>" + (i + 1) + "</b> : 駅数 <b>" + l_root_stations.length + "</b> | 乗換数 <b>" + l_root_trains[l_root_trains.length - 1] + "</b>";
+        l_r_div.innerHTML = "経路 <b>" + (i + 1) + "</b> : 駅数 <b>" + l_root_stations.length + "</b> | 乗換数 <b>" + final_data[i][1][0] + "</b>";
         root_result_area.appendChild(l_r_div);
         let l_return_btn = AddElement(l_r_div, "b", "\u00a0\u00a0\u00a0\u00a0[TOPへ]", null, "color: red; font-size : 12px;");
         l_return_btn.onclick = function () { main_div.scrollIntoView(true); }
         AddElement(l_r_div, "br");
-        for (var r = 0; r < l_root_trains.length - 1; r++) {
+        for (var r = 0; r < l_root_trains.length; r++) {
             let l_train_o = null;
             if (l_root_trains[r] != WALK_CMD) {
                 l_train_o = TrainObjMap[l_root_trains[r]];
@@ -311,9 +309,8 @@ function ShowRootResults(start) {
                     }
                 }
             }
-            //最終要素は乗換カウントである。
             //last
-            if (r == l_root_trains.length - 2) {
+            if (r == l_root_trains.length - 1) {
                 if (l_root_trains[r] != WALK_CMD) {
                     CreateResult(l_r_div, l_train_o, l_root_stations[r + 1], "降車");
                 } else {
@@ -325,12 +322,18 @@ function ShowRootResults(start) {
     }
 }
 
-
 //路線データを解析。(再帰関数)
-function RootParser(root, data, cache = "", index = 0, pretrain = null, _inited = false, change_c = 0) {
-    data = data || [];
+function RootParser(root, data, cache = null, index = 0, pretrain = null, _inited = false, change_c = 0) {
+    cache = cache || [];
     if (index >= root.length - 1) {
-        data.push(cache + "," + change_c);
+        if (data[0]) {
+            let vec = (check_chaos_mode.checked) ? -1 : 1;
+            if (data[0][0] * vec > change_c * vec) {
+                data[0] = [change_c, cache];
+            }
+        } else {
+            data[0] = [change_c, cache];
+        }
         return;
     }
     let l_trains_a = station_infos[root[index]];
@@ -378,28 +381,9 @@ function RootParser(root, data, cache = "", index = 0, pretrain = null, _inited 
                 }
             }
         }
-        RootParser(root, data, cache + "," + l_train_str, index + 1, l_train_str, _inited, change_c + l_change_vec);
-    }
-    if (index == 0) {
-        let l_base = 999999999;
-        if (check_chaos_mode.checked) { l_base = -1; }
-        let l_ind = 0;
-        for (var i = 0; i < data.length; i++) {
-            let l_data_split = data[i].split(",");
-            let l_num = parseInt(l_data_split[l_data_split.length - 1]);
-            if (check_chaos_mode.checked) {
-                if (l_num > l_base) {
-                    l_base = l_num
-                    l_ind = i;
-                }
-            } else {
-                if (l_num < l_base) {
-                    l_base = l_num
-                    l_ind = i;
-                }
-            }
-        }
-        return data[l_ind].replace(/^,/, "").split(",");
+        let l_copy_cache = cache.slice();
+        l_copy_cache.push(l_train_str);
+        RootParser(root, data, l_copy_cache, index + 1, l_train_str, _inited, change_c + l_change_vec);
     }
 }
 
@@ -471,7 +455,7 @@ function GetWalkInfo(station) {
     for (var i = 0; i < walk_data.length; i++) {
         let tar = walk_data[i][0].indexOf(station);
         if (tar >= 0) {
-            for (var k = 0; k < walk_data[i][0].length; k++) {
+            for (let k = 0; k < walk_data[i][0].length; k++) {
                 if (k != tar) {
                     if (res.indexOf(walk_data[i][0][k]) == -1) {
                         res.push(walk_data[i][0][k]);
