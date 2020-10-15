@@ -1,4 +1,4 @@
-const g_Version = "0.2.0-beta-6";
+const g_Version = "0.2.0-beta-6b";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
@@ -70,7 +70,6 @@ function CreateMainForm() {
         result_area = AddElement(main_div, "div");
 
         if (typeof DataPatcher == 'function') { DataPatcher(); }
-        AddElement(main_div, "br");
         AddElement(main_div, "span", "路線総数 : " + trains.length);
         AddElement(main_div, "br");
         all_station_count = AddElement(main_div, "span");
@@ -275,7 +274,7 @@ function ShowRootResults(start) {
         let l_root_stations = final_data[i][0];
         let l_root_trains = final_data[i][1][1];
         let l_r_div = AddElement(root_result_area, "div", null, "background-color: #F1F1F1");
-        AddElement(l_r_div, "b", "#経路 " + (i + 1) + " : 駅数 " + l_root_stations.length + " | 乗換数 " + final_data[i][1][0]);
+        AddElement(l_r_div, "b", "[経路 " + (i + 1) + "]\t駅数 " + l_root_stations.length + " | 乗換数 " + final_data[i][1][0]);
         let l_return_btn = AddElement(l_r_div, "b", "\u00a0\u00a0\u00a0\u00a0[TOPへ]", "color: red; font-size : 12px;");
         l_return_btn.onclick = function () { main_div.scrollIntoView(true); }
         AddElement(l_r_div, "br");
@@ -404,14 +403,14 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
     }
     //情報を追加
     if (opt != null) {
-        AddElement(l_par, "span", "[" + opt + "]", "font-weight: bold; text-decoration: underline");
+        AddElement(l_par, "span", "\t[" + opt + "]", "font-weight: bold;");
     }
     //他の路線の情報を追加
     if (subtrain != null) {
         if (subtrain.id != "") {
-            AddElement(l_par, "span", "■" + subtrain.id + ":" + subtrain.name, "color:" + subtrain.color);
+            AddElement(l_par, "span", "\t■" + subtrain.id + ":" + subtrain.name, "color:" + subtrain.color);
         }
-        else { AddElement(l_par, "span", "■" + subtrain.name, "color:" + subtrain.color); }
+        else { AddElement(l_par, "span", "\t■" + subtrain.name, "color:" + subtrain.color); }
     }
     AddElement(div, "br");
 }
