@@ -1,4 +1,4 @@
-const g_Version = "0.20.0-beta-8c";
+const g_Version = "0.20.0-beta-8d";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
@@ -156,7 +156,8 @@ function InitGuide() { // Call From LastLine
 
         all_station_count.textContent = "駅総数 : " + station_selector_data.length;
 
-        //セレクター作成。
+        // セレクター作成。
+        // Todo :  via, "指定しない"をfilter時に消さない
         // SetSelectorOption(selector_via, "*指定しない", "NONE", "していしない");
         for (var i = 0; i < station_selector_data.length; i++) {
             var sel_data = station_selector_data[i];
@@ -165,14 +166,13 @@ function InitGuide() { // Call From LastLine
             // SetSelectorOption(selector_via, sel_data[0], i, sel_data[1]);
         }
         var handle_selector_filter = function (selector, filter) {
-            var options = Array.from(selector.getElementsByTagName("option"));
             var first = -1;
-            for (var opt_i in options) {
-                var opt = options[opt_i];
+            for (var i = 0; i < selector.options.length; i++) {
+                var opt = selector.options[i];
                 if (opt.getAttribute("data").startsWith(filter) || opt.textContent.startsWith(filter)) { // ok
                     opt.style.display = "";
                     opt.disabled = false;
-                    if (first == -1) { first = opt_i; }
+                    if (first == -1) { first = i; }
                 } else {
                     opt.style.display = "none";
                     opt.disabled = true;
