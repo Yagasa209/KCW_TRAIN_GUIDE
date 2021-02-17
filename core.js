@@ -1,4 +1,4 @@
-const g_Version = "0.20.0-beta-8d";
+const g_Version = "0.20.0-beta-9";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
@@ -178,7 +178,6 @@ function InitGuide() { // Call From LastLine
                     opt.disabled = true;
                 }
             }
-
             selector.selectedIndex = first;
         }
         selector_from_filter.oninput = function () { handle_selector_filter(selector_from, selector_from_filter.value); };
@@ -345,12 +344,12 @@ function ShowRootResults(start) {
 
             // normal
             if (r > 0) {
-                let l_pretrain_o = null;
+                let l_pretrain_o = null; // error checker
                 if (l_root_trains[r - 1] != WALK_CMD) {
                     l_pretrain_o = trains[l_root_trains[r - 1]];
                 }
                 if (l_root_trains[r - 1] == l_root_trains[r]) {
-                    CreateResult(l_r_div, l_pretrain_o, l_root_stations[r]);
+                    CreateResult(l_r_div, l_pretrain_o || WALK_CMD, l_root_stations[r]);
                 } else {
                     if (l_root_trains[r - 1] == WALK_CMD) {
                         CreateResult(l_r_div, WALK_CMD, l_root_stations[r], "乗車", l_train_o);
@@ -472,7 +471,7 @@ function CheckNodes(tar, now, checked, ok, ss) {
         ok.push(checked);
         return;
     }
-    if (ss > 6000001) {
+    if (ss > 6000000) {
         console.warn("stacking");
         return;
     }
