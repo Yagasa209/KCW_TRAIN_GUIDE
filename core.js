@@ -1,4 +1,4 @@
-const g_Version = "0.2.0-beta-6b";
+const g_Version = "0.20.0-beta-7";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
@@ -11,8 +11,11 @@ var check_chaos_mode = null;
 
 //elements
 var selector_from = null;
+var selector_from_filter = null;
 var selector_to = null;
-//var selector_via = null;
+var selector_to_filter = null
+// var selector_via = null;
+// var selector_via_filter = null;
 var result_area = null;
 var url_cr_res = null;
 var all_station_count = null;
@@ -40,18 +43,24 @@ function CreateMainForm() {
         AddElement(main_div, "br");
         AddElement(main_div, "span", "利用者はハードリロードをしてみると更新されるかもしれません。");
     } else {
-        AddElement(main_div, "b", "From\u00a0:\u00a0");
+        AddElement(main_div, "b", "From:");
+        AddElement(main_div, "br");
         selector_from = AddElement(main_div, "select");
         AddElement(main_div, "br");
+        selector_from_filter = AddTextBox(main_div, "filter")
         AddElement(main_div, "br");
-        AddElement(main_div, "b", "To\u00a0\u00a0\u00a0\u00a0\u00a0:\u00a0");
+        AddElement(main_div, "b", "To:");
+        AddElement(main_div, "br");
         selector_to = AddElement(main_div, "select");
         AddElement(main_div, "br");
+        selector_to_filter = AddTextBox(main_div, "filter");
         AddElement(main_div, "br");
-        // AddElement(main_div, "b", "経由\u00a0\u00a0\u00a0:\u00a0");
+        // AddElement(main_div, "b", "経由:");
+        // AddElement(main_div, "br");
         // selector_via = AddElement(main_div, "select");
         // AddElement(main_div, "br");
-        //AddElement(main_div, "br");
+        // selector_via_filter = AddTextBox(main_div, "filter");
+        AddElement(main_div, "br");
         check_dont_use_walk = AddExCheckBox(main_div, " [歩く経路を含まない]");
         AddElement(main_div, "br");
         check_chaos_mode = AddExCheckBox(main_div, " [強引に乗換数を増やす]");
@@ -148,12 +157,33 @@ function InitGuide() {//Call From LastLine
         all_station_count.textContent = "駅総数 : " + station_selector_data.length;
 
         //セレクター作成。
-        //SetSelectorOption(selector_via, "指定しない", "NONE");
+        // SetSelectorOption(selector_via, "*指定しない", "NONE", "していしない");
         for (var i = 0; i < station_selector_data.length; i++) {
-            SetSelectorOption(selector_from, station_selector_data[i][0], i);
-            SetSelectorOption(selector_to, station_selector_data[i][0], i);
-            //SetSelectorOption(selector_via, station_selector_data[i][0], i);
+            var sel_data = station_selector_data[i];
+            SetSelectorOption(selector_from, sel_data[0], i, sel_data[1]);
+            SetSelectorOption(selector_to, sel_data[0], i, sel_data[1]);
+            // SetSelectorOption(selector_via, sel_data[0], i, sel_data[1]);
         }
+        var handle_selector_filter = function (selector, filter) {
+            var options = Array.from(selector.getElementsByTagName("option"));
+            var first = -1;
+            for (var opt_i in options) {
+                var opt = options[opt_i];
+                if (opt.getAttribute("data").startsWith(filter) || opt.textContent.startsWith(filter)) { // ok
+                    opt.style.display = "";
+                    opt.disabled = false;
+                    if (first == -1) { first = opt_i; }
+                } else {
+                    opt.style.display = "none";
+                    opt.disabled = true;
+                }
+            }
+
+            selector.selectedIndex = first;
+        }
+        selector_from_filter.oninput = function () { handle_selector_filter(selector_from, selector_from_filter.value); };
+        selector_to_filter.oninput = function () { handle_selector_filter(selector_to, selector_to_filter.value); };
+        // selector_via_filter.oninput = function () { handle_selector_filter(selector_via, selector_via_filter.value); };
 
         if (urlopti.has("from") || urlopti.has("to")) {
             let l_sta_inx_from = station_selector_data.findIndex(function (x) {
@@ -174,8 +204,30 @@ function InitGuide() {//Call From LastLine
 }
 //core
 function GuideCore() {
-    let from_st = selector_from.selectedOptions[0].text;
-    let to_st = selector_to.selectedOptions[0].text;
+    //init
+    result_area.textContent = null;
+    let from_st, to_st;
+    let st_get_faild = false;
+    if (selector_from.selectedOptions[0] != undefined) {
+        from_st = selector_from.selectedOptions[0].text;
+    } else {
+        AddElement(result_area, "b", "Error : From を指定してください。");
+        AddElement(result_area, "br");
+        st_get_faild = true;
+    }
+
+    if (selector_to.selectedOptions[0] != undefined) {
+        to_st = selector_to.selectedOptions[0].text;
+    } else {
+        AddElement(result_area, "b", "Error : To を指定してください。");
+        AddElement(result_area, "br");
+        st_get_faild = true;
+    }
+
+    // Todo
+    // let l_via_sta = selector_via.selectedOptions[0].text;
+    if (st_get_faild) { return; }
+
 
     //urlcreate
     let l_url = location.href.split('?')[0] + "?";
@@ -191,8 +243,6 @@ function GuideCore() {
     url_cr_res.href = l_url;
     url_cr_res.textContent = "検索結果のリンク";
 
-    //init
-    result_area.textContent = null;
     if (to_st == from_st) {
         AddElement(result_area, "b", "Info : 駅が同じなので移動する必要はありません。");
         return;
@@ -200,9 +250,8 @@ function GuideCore() {
     let result = [];
     //経路解析。
     CheckNodes(to_st, from_st, new Array(), result, 0);
-    // if(selector_via.value != "NONE"){
-    //     let l_via_sta = selector_via.selectedOptions[0].text;
-    //     result = result.filter(function(x){ return x.includes(l_via_sta); });
+    // if (selector_via.value != "NONE") {
+    //     result = result.filter(function (x) { return x.includes(l_via_sta); });
     // }
     if (result.length == 0) {
         AddElement(result_area, "b", "Info : 経路が見つかりませんでした。");
@@ -460,9 +509,10 @@ function LoopNum(val, min, max) {
 
 //Element helper functions
 
-function SetSelectorOption(selctor, text, val = null) {
+function SetSelectorOption(selctor, text, val = null, data = null) {
     let opt = document.createElement("option");
     opt.text = text;
+    opt.setAttribute("data", data);
     if (val != null) { opt.value = val };
     selctor.appendChild(opt);
 }
@@ -481,6 +531,13 @@ function AddExCheckBox(parent, text, style = null) {
     let span_d = AddElement(parent, "span", text, style);
     span_d.onclick = function () { chb.checked = !chb.checked; }
     return chb;
+}
+
+function AddTextBox(parent, placeholder = null, style = null) {
+    let tex = AddElement(parent, "input");
+    tex.type = "text";
+    tex.placeholder = placeholder;
+    return tex;
 }
 
 InitGuide();
