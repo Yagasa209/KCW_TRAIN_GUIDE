@@ -1,4 +1,4 @@
-const g_Version = "0.20.0-beta-7";
+const g_Version = "0.20.0-beta-8";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
@@ -457,9 +457,9 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
     //他の路線の情報を追加
     if (subtrain != null) {
         if (subtrain.id != "") {
-            AddElement(l_par, "span", "\t■" + subtrain.id + ":" + subtrain.name, "color:" + subtrain.color);
+            AddElement(l_par, "span", "\t■" + subtrain.id + ":" + (subtrain.display_name || subtrain.name), "color:" + subtrain.color);
         }
-        else { AddElement(l_par, "span", "\t■" + subtrain.name, "color:" + subtrain.color); }
+        else { AddElement(l_par, "span", "\t■" + (subtrain.display_name || subtrain.name), "color:" + subtrain.color); }
     }
     AddElement(div, "br");
 }

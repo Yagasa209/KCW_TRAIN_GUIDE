@@ -119,8 +119,9 @@ trains.push({
 //5
 trains.push({
   name: "NetherExpC1線",
-  id: "C1",
-  color: "#00FF55",
+  display_name : "NetherExpC線",
+  id: "C",
+  color: "#00FF40",
   stations: [
     ["打羽", "うちばね", "01"],
     ["高台", "たかだい", "02"],
@@ -130,8 +131,9 @@ trains.push({
 //6
 trains.push({
   name: "NetherExpC2線",
-  id: "C2",
-  color: "#00FF55",
+  display_name : "NetherExpC線",
+  id: "C",
+  color: "#00FF40",
   stations: [
     ["海底神殿", "かいていしんでん", "03"],
     ["三ヶ槍", "さんがやり", "04"],
@@ -313,6 +315,7 @@ trains.push({
 //17
 trains.push({
   name: "彩麗西線",
+  display_name : "彩麗線",
   id: "XI",
   color: "#0000FF",
   stations: [
@@ -324,7 +327,8 @@ trains.push({
 //18
 trains.push({
   name: "彩麗東線",
-  id: "",
+  display_name : "彩麗線",
+  id: "XI",
   color: "#0000FF",
   stations: [
     ["千夜舞村", "ちやまむら", ""],
