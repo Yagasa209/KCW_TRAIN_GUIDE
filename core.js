@@ -1,4 +1,4 @@
-const g_Version = "0.20.0-beta-8";
+const g_Version = "0.20.0-beta-8b";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
@@ -206,7 +206,8 @@ function InitGuide() {//Call From LastLine
 function GuideCore() {
     //init
     result_area.textContent = null;
-    let from_st, to_st;
+    let from_st = null;
+    let to_st = null;
     let st_get_faild = false;
     if (selector_from.selectedOptions[0] != undefined) {
         from_st = selector_from.selectedOptions[0].text;
@@ -265,7 +266,7 @@ function GuideCore() {
         final_data.push([result[i], l_trains_data[0], i]);
     }
     let l_all_result_groups = final_data.length / RESULT_GROUP;
-    AddElement(result_area, "b", "Result Group\u00a0:\u00a0");
+    AddElement(result_area, "b", "Result Group : ");
     result_selector = AddElement(result_area, "select");
     AddElement(result_area, "br");
     AddElement(result_area, "br");
@@ -275,7 +276,7 @@ function GuideCore() {
         if (l_last_s_num > final_data.length) { l_last_s_num = final_data.length; }
         SetSelectorOption(result_selector, "経路 " + l_first_s_num + " ~ 経路 " + l_last_s_num);
     }
-    AddElement(result_area, "b", "Sort Type\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0:\u00a0");
+    AddElement(result_area, "b", "Sort Type\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0: ");
     let l_result_sort_selector = AddElement(result_area, "select");
     AddElement(result_area, "br");
     AddElement(result_area, "br");
@@ -512,7 +513,7 @@ function LoopNum(val, min, max) {
 function SetSelectorOption(selctor, text, val = null, data = null) {
     let opt = document.createElement("option");
     opt.text = text;
-    opt.setAttribute("data", data);
+    if (data != null) { opt.setAttribute("data", data) };
     if (val != null) { opt.value = val };
     selctor.appendChild(opt);
 }
@@ -534,7 +535,7 @@ function AddExCheckBox(parent, text, style = null) {
 }
 
 function AddTextBox(parent, placeholder = null, style = null) {
-    let tex = AddElement(parent, "input");
+    let tex = AddElement(parent, "input", null, style);
     tex.type = "text";
     tex.placeholder = placeholder;
     return tex;
