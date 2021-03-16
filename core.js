@@ -1,15 +1,15 @@
-const g_Version = "0.20.0";
+const g_Version = "0.20.1";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
 
-//options
+// options
 var check_dont_use_walk = null;
 var check_chaos_mode = null;
 
-//elements
+// elements
 var selector_from = null;
 var selector_from_filter = null;
 var selector_to = null;
@@ -22,186 +22,182 @@ var all_station_count = null;
 var root_result_area = null;
 var result_selector = null;
 
-//Objects
+// Objects
 var urlopti = null;
-//駅毎の、その駅に止まる列車の情報のMAP。
+// 駅毎の、その駅に止まる列車の情報のMAP。
 var station_infos = null;
-//駅毎の、隣接駅の情報のMAP。
+// 駅毎の、隣接駅の情報のMAP。
 var station_edge_infos = null;
 var walk_edge_infos = null;
 var walk_ruby = null;
-//最終結果
+// 最終結果
 var final_data = [];
 
 function CreateMainForm() {
-    let ok = typeof trains != 'undefined';
     main_div.textContent = null;
     AddElement(main_div, "p", "[乗り換え案内]", "font-weight: bold;");
-    if (!ok) {
-        AddElement(main_div, "p", "古いバージョンです。");
-        AddElement(main_div, "span", "管理者は更新してください。");
-        AddElement(main_div, "br");
-        AddElement(main_div, "span", "利用者はハードリロードをしてみると更新されるかもしれません。");
-    } else {
-        AddElement(main_div, "b", "From:");
-        AddElement(main_div, "br");
-        selector_from = AddElement(main_div, "select");
-        AddElement(main_div, "br");
-        selector_from_filter = AddTextBox(main_div, "filter")
-        AddElement(main_div, "br");
-        AddElement(main_div, "b", "To:");
-        AddElement(main_div, "br");
-        selector_to = AddElement(main_div, "select");
-        AddElement(main_div, "br");
-        selector_to_filter = AddTextBox(main_div, "filter");
-        AddElement(main_div, "br");
-        // AddElement(main_div, "b", "経由:");
-        // AddElement(main_div, "br");
-        // selector_via = AddElement(main_div, "select");
-        // AddElement(main_div, "br");
-        // selector_via_filter = AddTextBox(main_div, "filter");
-        AddElement(main_div, "br");
-        check_dont_use_walk = AddExCheckBox(main_div, " [歩く経路を含まない]");
-        AddElement(main_div, "br");
-        check_chaos_mode = AddExCheckBox(main_div, " [強引に乗換数を増やす]");
-        AddElement(main_div, "br");
-        AddElement(main_div, "br");
-        AddElement(main_div, "button", "検索する").onclick = GuideCore;
-        AddElement(main_div, "button", "FromとToを入替", "margin-left: 25px;").onclick = function () {
-            let l_from_s = selector_from.options.selectedIndex;
-            selector_from.options.selectedIndex = selector_to.options.selectedIndex;
-            selector_to.options.selectedIndex = l_from_s;
-        }
-        AddElement(main_div, "br");
-        url_cr_res = AddElement(main_div, "a", "", "font-size: 11px;");
-        AddElement(main_div, "br");
-        result_area = AddElement(main_div, "div");
-        AddElement(main_div, "br");
-
-        if (typeof DataPatcher == 'function') { DataPatcher(); }
-        AddElement(main_div, "span", "路線総数 : " + trains.length);
-        AddElement(main_div, "br");
-        all_station_count = AddElement(main_div, "span");
-    }
-
+    AddElement(main_div, "b", "From:");
     AddElement(main_div, "br");
+    selector_from = AddElement(main_div, "select");
+    AddElement(main_div, "br");
+    selector_from_filter = AddTextBox(main_div, "filter")
+    AddElement(main_div, "br");
+    AddElement(main_div, "b", "To:");
+    AddElement(main_div, "br");
+    selector_to = AddElement(main_div, "select");
+    AddElement(main_div, "br");
+    selector_to_filter = AddTextBox(main_div, "filter");
+    AddElement(main_div, "br");
+    // AddElement(main_div, "b", "経由:");
+    // AddElement(main_div, "br");
+    // selector_via = AddElement(main_div, "select");
+    // AddElement(main_div, "br");
+    // selector_via_filter = AddTextBox(main_div, "filter");
+    AddElement(main_div, "br");
+    check_dont_use_walk = AddExCheckBox(main_div, " [歩く経路を含まない]");
+    AddElement(main_div, "br");
+    check_chaos_mode = AddExCheckBox(main_div, " [強引に乗換数を増やす]");
+    AddElement(main_div, "br");
+    AddElement(main_div, "br");
+    AddElement(main_div, "button", "検索する").onclick = GuideCore;
+    AddElement(main_div, "button", "FromとToを入替", "margin-left: 25px;").onclick = function () {
+        const l_from_s = selector_from.options.selectedIndex;
+        selector_from.options.selectedIndex = selector_to.options.selectedIndex;
+        selector_to.options.selectedIndex = l_from_s;
+        const l_from_f = selector_from_filter.value;
+        selector_from_filter.value = selector_to_filter.value;
+        selector_to_filter.value = l_from_f;
+        selector_from_filter.oninput(true);
+        selector_to_filter.oninput(true);
+    }
+    AddElement(main_div, "br");
+    url_cr_res = AddElement(main_div, "a", "", "font-size: 11px;");
+    AddElement(main_div, "br");
+    result_area = AddElement(main_div, "div");
+    AddElement(main_div, "br");
+
+    if (typeof DataPatcher == 'function') { DataPatcher(); }
+    AddElement(main_div, "span", "路線総数 : " + trains.length);
+    AddElement(main_div, "br");
+    all_station_count = AddElement(main_div, "span");
+    AddElement(main_div, "br");
+
     AddElement(main_div, "br");
     AddElement(main_div, "span", "version : " + g_Version);
     AddElement(main_div, "br");
     AddElement(main_div, "b", "powered by theta");
-    return ok;
 }
 
 //set up
 function InitGuide() { // Call From LastLine
-    if (CreateMainForm()) {
-        urlopti = new Map();
-        let pair = location.search.substring(1).split('&');
-        for (var i = 0; pair[i]; i++) {
-            let kv = pair[i].split('=');
-            if (kv[0] == "chaos") { check_chaos_mode.checked = kv[1] == "1"; continue; }
-            if (kv[0] == "nwalk") { check_dont_use_walk.checked = kv[1] == "1"; continue; }
-            urlopti.set(kv[0], decodeURIComponent(kv[1]));
-        }
+    CreateMainForm();
+    urlopti = new Map();
+    const pair = location.search.substring(1).split('&');
+    for (var i = 0; pair[i]; i++) {
+        const kv = pair[i].split('=');
+        if (kv[0] == "chaos") { check_chaos_mode.checked = kv[1] == "1"; continue; }
+        if (kv[0] == "nwalk") { check_dont_use_walk.checked = kv[1] == "1"; continue; }
+        urlopti.set(kv[0], decodeURIComponent(kv[1]));
+    }
 
-        let station_selector_data = [];
-        station_infos = new Map();
-        station_edge_infos = new Map();
-        //路線データから駅を調べる。
-        for (var i = 0; i < trains.length; i++) {
-            for (let g = 0; g < trains[i].stations.length; g++) {
-                let name = trains[i].stations[g][0];
-                if (!station_infos.has(name)) {
-                    station_infos.set(name, []);
-                    station_selector_data.push([name, trains[i].stations[g][1]]);
-                    station_edge_infos.set(name, new Set());
-                }
-                station_infos.get(name).push(i);
-                if (g - 1 >= 0) {
-                    station_edge_infos.get(name).add(trains[i].stations[g - 1][0]);
-                } else if (trains[i].loop) {
-                    station_edge_infos.get(name).add(trains[i].stations[trains[i].stations.length - 1][0]);
-                }
-                if (g + 1 < trains[i].stations.length) {
-                    station_edge_infos.get(name).add(trains[i].stations[g + 1][0]);
-                } else if (trains[i].loop) {
-                    station_edge_infos.get(name).add(trains[i].stations[0][0]);
-                }
+    let station_selector_data = [];
+    station_infos = new Map();
+    station_edge_infos = new Map();
+    // 路線データから駅を調べる。
+    for (var i = 0; i < trains.length; i++) {
+        for (let g = 0; g < trains[i].stations.length; g++) {
+            const name = trains[i].stations[g][0];
+            if (!station_infos.has(name)) {
+                station_infos.set(name, []);
+                station_selector_data.push([name, trains[i].stations[g][1]]);
+                station_edge_infos.set(name, new Set());
             }
-        }
-        walk_edge_infos = new Map();
-        walk_ruby = new Map();
-        for (var i = 0; i < walk_data.length; i++) {
-            let walkAr = walk_data[i][0]
-            for (let k = 0; k < walkAr.length; k++) {
-                let l_name = walkAr[k];
-                if (!station_infos.has(l_name)) {
-                    station_infos.set(l_name, []); // dummy
-                    station_selector_data.push([l_name, walk_data[i][1][k]]);
-                }
-                if (!walk_edge_infos.has(l_name)) {
-                    walk_edge_infos.set(l_name, new Set());
-                    walk_ruby.set(l_name, walk_data[i][1][k]);
-                }
-                for (let j = 0; j < walkAr.length; j++) {
-                    if (k != j) { walk_edge_infos.get(l_name).add(walkAr[j]); }
-                }
+            station_infos.get(name).push(i);
+            if (g - 1 >= 0) {
+                station_edge_infos.get(name).add(trains[i].stations[g - 1][0]);
+            } else if (trains[i].loop) {
+                station_edge_infos.get(name).add(trains[i].stations[trains[i].stations.length - 1][0]);
             }
-        }
-
-        station_selector_data.sort(function (a, b) {
-            return (a[1] <= b[1]) ? -1 : 1;
-        });
-
-        all_station_count.textContent = "駅総数 : " + station_selector_data.length;
-
-        // セレクター作成。
-        // Todo :  via, "指定しない"をfilter時に消さない
-        // SetSelectorOption(selector_via, "*指定しない", "NONE", "していしない");
-        station_selector_data.forEach(function (sel_data, i) {
-            SetSelectorOption(selector_from, sel_data[0], i, sel_data[1]);
-            SetSelectorOption(selector_to, sel_data[0], i, sel_data[1]);
-            // SetSelectorOption(selector_via, sel_data[0], i, sel_data[1]);
-        });
-        var handle_selector_filter = function (selector, filter) {
-            var first = -1;
-            for (var i = 0; i < selector.options.length; i++) {
-                var opt = selector.options[i];
-                if (opt.getAttribute("data").startsWith(filter) || opt.textContent.startsWith(filter)) { // ok
-                    opt.style.display = "";
-                    opt.disabled = false;
-                    if (first == -1) { first = i; }
-                } else {
-                    opt.style.display = "none";
-                    opt.disabled = true;
-                }
+            if (g + 1 < trains[i].stations.length) {
+                station_edge_infos.get(name).add(trains[i].stations[g + 1][0]);
+            } else if (trains[i].loop) {
+                station_edge_infos.get(name).add(trains[i].stations[0][0]);
             }
-            selector.disabled = first == -1;
-            selector.selectedIndex = first;
-        }
-        selector_from_filter.oninput = function () { handle_selector_filter(selector_from, selector_from_filter.value); };
-        selector_to_filter.oninput = function () { handle_selector_filter(selector_to, selector_to_filter.value); };
-        // selector_via_filter.oninput = function () { handle_selector_filter(selector_via, selector_via_filter.value); };
-
-        if (urlopti.has("from") || urlopti.has("to")) {
-            const from_val = urlopti.get("from");
-            let l_sta_inx_from = station_selector_data.findIndex(function (x) {
-                return x[0] == from_val;
-            });
-            if (l_sta_inx_from >= 0) {
-                selector_from.options.selectedIndex = l_sta_inx_from;
-            }
-            const to_val = urlopti.get("to");
-            let l_sta_inx_to = station_selector_data.findIndex(function (x) {
-                return x[0] == to_val;
-            });
-            if (l_sta_inx_to >= 0) {
-                selector_to.options.selectedIndex = l_sta_inx_to;
-            }
-            if (l_sta_inx_from >= 0 && l_sta_inx_to >= 0) { GuideCore(); }
         }
     }
+    walk_edge_infos = new Map();
+    walk_ruby = new Map();
+    for (var i = 0; i < walk_data.length; i++) {
+        const walkAr = walk_data[i][0]
+        for (let k = 0; k < walkAr.length; k++) {
+            const l_name = walkAr[k];
+            if (!station_infos.has(l_name)) {
+                station_infos.set(l_name, []); // dummy
+                station_selector_data.push([l_name, walk_data[i][1][k]]);
+            }
+            if (!walk_edge_infos.has(l_name)) {
+                walk_edge_infos.set(l_name, new Set());
+                walk_ruby.set(l_name, walk_data[i][1][k]);
+            }
+            for (let j = 0; j < walkAr.length; j++) {
+                if (k != j) { walk_edge_infos.get(l_name).add(walkAr[j]); }
+            }
+        }
+    }
+
+    station_selector_data.sort(function (a, b) {
+        return (a[1] <= b[1]) ? -1 : 1;
+    });
+
+    all_station_count.textContent = "駅総数 : " + station_selector_data.length;
+
+    // セレクター作成。
+    // Todo :  via, "指定しない"をfilter時に消さない
+    // SetSelectorOption(selector_via, "*指定しない", "NONE", "していしない");
+    station_selector_data.forEach(function (sel_data, i) {
+        SetSelectorOption(selector_from, sel_data[0], i, sel_data[1]);
+        SetSelectorOption(selector_to, sel_data[0], i, sel_data[1]);
+        // SetSelectorOption(selector_via, sel_data[0], i, sel_data[1]);
+    });
+    const handle_selector_filter = function (selector, filter, keepInx = false) {
+        var first = -1;
+        for (var i = 0; i < selector.options.length; i++) {
+            var opt = selector.options[i];
+            if (opt.getAttribute("data").startsWith(filter) || opt.textContent.startsWith(filter)) { // ok
+                opt.style.display = "";
+                opt.disabled = false;
+                if (first == -1) { first = i; }
+            } else { // bad
+                opt.style.display = "none";
+                opt.disabled = true;
+            }
+        }
+        selector.disabled = first == -1;
+        if (!keepInx) { selector.selectedIndex = first; }
+    }
+    selector_from_filter.oninput = function (kp) { handle_selector_filter(selector_from, selector_from_filter.value, kp == true); };
+    selector_to_filter.oninput = function (kp) { handle_selector_filter(selector_to, selector_to_filter.value, kp == true); };
+    // selector_via_filter.oninput = function () { handle_selector_filter(selector_via, selector_via_filter.value); };
+
+    if (urlopti.has("from") || urlopti.has("to")) {
+        const from_val = urlopti.get("from");
+        const l_sta_inx_from = station_selector_data.findIndex(function (x) {
+            return x[0] == from_val;
+        });
+        if (l_sta_inx_from >= 0) {
+            selector_from.options.selectedIndex = l_sta_inx_from;
+        }
+        const to_val = urlopti.get("to");
+        const l_sta_inx_to = station_selector_data.findIndex(function (x) {
+            return x[0] == to_val;
+        });
+        if (l_sta_inx_to >= 0) {
+            selector_to.options.selectedIndex = l_sta_inx_to;
+        }
+        if (l_sta_inx_from >= 0 && l_sta_inx_to >= 0) { GuideCore(); }
+    }
 }
+// Todo : async
 // core
 function GuideCore() {
     // init
@@ -236,7 +232,7 @@ function GuideCore() {
 
     // urlcreate
     let l_url = location.href.split('?')[0] + "?";
-    let keys = Array.from(urlopti.keys());
+    const keys = Array.from(urlopti.keys());
     for (var i = 0; i < keys.length; i++) {
         if (keys[i] != "from" && keys[i] != "to") {
             l_url += keys[i] + "=" + urlopti.get(keys[i]) + "&";
@@ -265,19 +261,19 @@ function GuideCore() {
         RootParser(result[i], l_trains_data);
         final_data.push([result[i], l_trains_data[0], i]);
     }
-    let l_all_result_groups = final_data.length / RESULT_GROUP;
+    const l_all_result_groups = final_data.length / RESULT_GROUP;
     AddElement(result_area, "b", "Result Group : ");
     result_selector = AddElement(result_area, "select");
     AddElement(result_area, "br");
     AddElement(result_area, "br");
     for (let i = 0; i < l_all_result_groups; i++) {
-        let l_first_s_num = i * RESULT_GROUP + 1;
+        const l_first_s_num = i * RESULT_GROUP + 1;
         let l_last_s_num = (i + 1) * RESULT_GROUP;
         if (l_last_s_num > final_data.length) { l_last_s_num = final_data.length; }
         SetSelectorOption(result_selector, "経路 " + l_first_s_num + " ~ 経路 " + l_last_s_num);
     }
     AddElement(result_area, "b", "Sort Type :", "margin-right: 35px;");
-    let l_result_sort_selector = AddElement(result_area, "select");
+    const l_result_sort_selector = AddElement(result_area, "select");
     AddElement(result_area, "br");
     SetSelectorOption(l_result_sort_selector, "乗換数順", "CHA");
     SetSelectorOption(l_result_sort_selector, "駅数順", "STA");
@@ -316,9 +312,9 @@ function SortResults(type) {
 function ShowRootResults(start) {
     root_result_area.textContent = null;
     for (var i = start * RESULT_GROUP; i < (start + 1) * RESULT_GROUP && i < final_data.length; i++) {
-        let l_root_stations = final_data[i][0];
-        let l_root_trains = final_data[i][1][1];
-        let l_r_div = AddElement(root_result_area, "div", null, "background-color: #F1F1F1; margin-top: 10px; outline: solid black 1px;");
+        const l_root_stations = final_data[i][0];
+        const l_root_trains = final_data[i][1][1];
+        const l_r_div = AddElement(root_result_area, "div", null, "background-color: #F2F2F2; margin: 8px 2px 0; outline: solid black 2px;");
         let l_return_btn = AddElement(root_result_area, "b", "[TOP]", "cursor: pointer; color: red; font-size: 12px;");
         l_return_btn.onclick = function () { main_div.scrollIntoView(true); }
         AddElement(l_r_div, "b", "[経路 " + (i + 1) + "]\t駅数 " + l_root_stations.length + " | 乗換数 " + final_data[i][1][0], "display: inline-block;");
@@ -387,18 +383,18 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
     }
     // 駅間共通路線&徒歩検証
     let l_trains_walks = GetArraysSharedElements(station_infos.get(root[index]), station_infos.get(root[index + 1]));
-    let l_has_walk = walk_edge_infos.get(root[index]);
+    const l_has_walk = walk_edge_infos.get(root[index]);
     if (l_has_walk != undefined && l_has_walk.has(root[index + 1])) { l_trains_walks.push(WALK_CMD); }
     for (var i = 0; i < l_trains_walks.length; i++) {
-        let l_train_inx = l_trains_walks[i];
-        let l_train = trains[l_train_inx];
+        const l_train_inx = l_trains_walks[i];
+        const l_train = trains[l_train_inx];
         if (l_train_inx != WALK_CMD) {
             // この電車にとって隣接駅であるか
-            let l_st_index_a = IndexOfStation(l_train, root[index]);
-            let l_st_index_b = IndexOfStation(l_train, root[index + 1]);
+            const l_st_index_a = IndexOfStation(l_train, root[index]);
+            const l_st_index_b = IndexOfStation(l_train, root[index + 1]);
             if (l_train.loop) {
-                let l_loop_n = LoopNum(l_st_index_a + 1, 0, l_train.stations.length - 1);
-                let l_loop_p = LoopNum(l_st_index_a - 1, 0, l_train.stations.length - 1);
+                const l_loop_n = LoopNum(l_st_index_a + 1, 0, l_train.stations.length - 1);
+                const l_loop_p = LoopNum(l_st_index_a - 1, 0, l_train.stations.length - 1);
                 if (l_st_index_b != l_loop_n && l_st_index_b != l_loop_p) { continue; }
             } else {
                 if (Math.abs(l_st_index_a - l_st_index_b) != 1) { continue; }
@@ -409,7 +405,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         // 路線変更カウント
         if (pretrain != null && pretrain != l_train_inx) {
             if (pretrain != WALK_CMD && l_train_inx != WALK_CMD) {
-                let l_train_pre = trains[pretrain];
+                const l_train_pre = trains[pretrain];
                 if (!l_train_pre.Direct || !l_train_pre.Direct[l_train.name] || l_train_pre.Direct[l_train.name] != root[index]) {
                     l_change_vec = 1;
                 }
@@ -421,15 +417,14 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
                 }
             }
         }
-        let l_copy_cache = cache.concat([l_train_inx]);
-        RootParser(root, data, l_copy_cache, index + 1, l_train_inx, _inited, change_c + l_change_vec);
+        RootParser(root, data, cache.concat([l_train_inx]), index + 1, l_train_inx, _inited, change_c + l_change_vec);
     }
 }
 
 function CreateResult(div, train, station, opt = null, subtrain = null) {
-    let l_par = AddElement(div, "div");
+    const l_par = AddElement(div, "div");
     if (train != WALK_CMD) {
-        let sta_info = IndexOfStation(train, station);
+        const sta_info = IndexOfStation(train, station);
         // Idや■を追加
         if (train.id == "") { // no tr id
             AddElement(l_par, "span", "■" + train.stations[sta_info][2] + "\t", "color: " + train.color);
@@ -446,14 +441,16 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
     }
     // 情報を追加
     if (opt != null) {
-        let opt_span = AddElement(l_par, "span", null, "display: inline-block;");
+        const opt_span = AddElement(l_par, "span", null, "display: inline-block;");
         AddElement(opt_span, "span", "[" + opt + "]", "font-weight: bold; margin: 0 5px;");
         // 他の路線の情報を追加
         if (subtrain != null) {
             if (subtrain.id != "") {
                 AddElement(opt_span, "span", "■" + subtrain.id + ":" + (subtrain.display_name || subtrain.name), "color:" + subtrain.color);
             }
-            else { AddElement(opt_span, "span", "■" + (subtrain.display_name || subtrain.name), "color:" + subtrain.color); }
+            else {
+                AddElement(opt_span, "span", "■" + (subtrain.display_name || subtrain.name), "color:" + subtrain.color);
+            }
         }
     }
 }

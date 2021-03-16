@@ -21,7 +21,6 @@ trains.push({
 
 */
 
-//0
 trains.push({
   name: "一村線",
   id: "IC",
@@ -36,7 +35,6 @@ trains.push({
   ]
 });
 
-//1
 trains.push({
   name: "岸川線",
   id: "KW",
@@ -55,7 +53,6 @@ trains.push({
   ]
 });
 
-//2
 trains.push({
   name: "高野線",
   id: "TN",
@@ -76,7 +73,6 @@ trains.push({
   }
 });
 
-//3
 trains.push({
   name: "NetherExpA線",
   id: "A",
@@ -101,7 +97,6 @@ trains.push({
   ]
 });
 
-//4
 trains.push({
   name: "NetherExpB線",
   id: "B",
@@ -117,7 +112,6 @@ trains.push({
   ]
 });
 
-//5
 trains.push({
   name: "NetherExpC1線",
   display_name : "NetherExpC線",
@@ -130,7 +124,6 @@ trains.push({
   ]
 });
 
-//6
 trains.push({
   name: "NetherExpC2線",
   display_name : "NetherExpC線",
@@ -143,7 +136,6 @@ trains.push({
   ]
 });
 
-//7
 trains.push({
   name: "すいひん線",
   id: "SU",
@@ -161,7 +153,6 @@ trains.push({
   }
 });
 
-//8
 trains.push({
   name: "桜庭線",
   id: "SK",
@@ -180,7 +171,6 @@ trains.push({
   ],
 });
 
-//9
 trains.push({
   name: "矢野線",
   id: "YN",
@@ -205,7 +195,6 @@ trains.push({
   }
 });
 
-//10
 trains.push({
   name: "北海岸線",
   id: "KK",
@@ -220,7 +209,6 @@ trains.push({
   ],
 });
 
-//11
 trains.push({
   name: "雉鉄本線",
   id: "KH",
@@ -237,7 +225,6 @@ trains.push({
   ],
 });
 
-//12
 trains.push({
   name: "ピリド線",
   id: "PR",
@@ -250,7 +237,6 @@ trains.push({
   ]
 });
 
-//13
 trains.push({
   name: "金剛線",
   id: "KG",
@@ -268,7 +254,6 @@ trains.push({
   }
 });
 
-//14
 trains.push({
   name: "ケダマ村電線",
   id: "",
@@ -285,7 +270,6 @@ trains.push({
   loop: true,
 });
 
-//15
 trains.push({
   name: "市鉄本線",
   id: "IR",
@@ -302,7 +286,6 @@ trains.push({
   ]
 });
 
-//16
 trains.push({
   name: "琳廻線",
   id: "RK",
@@ -320,31 +303,28 @@ trains.push({
   loop : true
 });
 
-//17
 trains.push({
-  name: "彩麗西線",
-  display_name : "彩麗線",
+  name: "彩麗線",
   id: "XI",
   color: "#0000FF",
   stations: [
     ["山吹", "やまぶき", "01"],
     ["牛込", "うしごめ", "02"],
+    ["みかんの山", "みかんのやま", "03"],
+    ["咲院", "さいん", "04"],
+    ["静瀬津", "せいせつ", "05"],
+    ["桃園", "ももぞの", "06"],
+    ["来彩", "こさい", "07"],
+    ["河間", "かわま", "08"],
+    ["海音", "うみね", "09"],
+    ["一条", "いちじょう", "10"],
+    ["桜町", "さくらまち", "11"],
+    ["天草", "あまくさ", "12"],
+    ["千夜舞村", "ちやまむら", "13"],
+    ["守南花", "もりなか", "14"],
   ]
 });
 
-//18
-trains.push({
-  name: "彩麗東線",
-  display_name : "彩麗線",
-  id: "XI",
-  color: "#0000FF",
-  stations: [
-    ["千夜舞村", "ちやまむら", ""],
-    ["守南花", "もりなか", ""],
-  ]
-});
-
-//19
 trains.push({
   name: "海底神殿線",
   id: "",
@@ -355,7 +335,6 @@ trains.push({
   ]
 });
 
-//20
 trains.push({
   name: "藤和線",
   id: "TW",
@@ -371,7 +350,6 @@ trains.push({
   ]
 });
 
-//21
 trains.push({
   name: "石鉄石花線",
   id: "IB",
@@ -392,7 +370,6 @@ trains.push({
   ]
 });
 
-//22
 trains.push({
   name: "雨虹線",
   id: "AN",
@@ -404,7 +381,6 @@ trains.push({
 });
 
 
-//23
 trains.push({
   name: "すばる高良電鉄線",
   id: "",
@@ -415,7 +391,6 @@ trains.push({
   ]
 });
 
-//24
 trains.push({
   name: "ライラック珊瑚線",
   id: "LS",
@@ -426,7 +401,6 @@ trains.push({
   ]
 });
 
-//25
 trains.push({
   name: "ティンカーベルライン",
   id: "TB",
@@ -451,32 +425,27 @@ var walk_data = [];
   
 */
 
-// 0
 walk_data.push([
   ["初原", "初春"],
   ["はつはら", "ういはる"],
 ]);
 
-// 1
 walk_data.push([
   ["初春採石場", "初春"],
   ["ういはるさいせきじょう", "ういはる"],
 ]);
 
 
-// 2
 walk_data.push([
   ["岸川", "矢野"],
   ["きしかわ", "やの"],
 ]);
 
-// 3
 walk_data.push([
   ["花園城址公園", "明神"],
   ["はのぞのじょうしこうえん", "みょうじん"],
 ]);
 
-// 4
 walk_data.push([
   ["何富何", "高嶺口"],
   ["なんとか", "たかねぐち"],
