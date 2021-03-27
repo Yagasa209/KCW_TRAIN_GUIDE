@@ -1,4 +1,4 @@
-const g_Version = "0.20.1";
+const g_Version = "0.20.1b";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
@@ -145,9 +145,7 @@ function InitGuide() { // Call From LastLine
         }
     }
 
-    station_selector_data.sort(function (a, b) {
-        return (a[1] <= b[1]) ? -1 : 1;
-    });
+    station_selector_data.sort(function (a, b) { return (a[1] <= b[1]) ? -1 : 1; });
 
     all_station_count.textContent = "駅総数 : " + station_selector_data.length;
 
@@ -393,12 +391,9 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
             const l_st_index_a = IndexOfStation(l_train, root[index]);
             const l_st_index_b = IndexOfStation(l_train, root[index + 1]);
             if (l_train.loop) {
-                const l_loop_n = LoopNum(l_st_index_a + 1, 0, l_train.stations.length - 1);
-                const l_loop_p = LoopNum(l_st_index_a - 1, 0, l_train.stations.length - 1);
-                if (l_st_index_b != l_loop_n && l_st_index_b != l_loop_p) { continue; }
-            } else {
-                if (Math.abs(l_st_index_a - l_st_index_b) != 1) { continue; }
-            }
+                if (l_st_index_b != InxIncrLoop(l_train.stations, l_st_index_a) &&
+                    l_st_index_b != InxIncrLoop(l_train.stations, l_st_index_a, false)) { continue; }
+            } else if (Math.abs(l_st_index_a - l_st_index_b) != 1) { continue; }
         }
 
         let l_change_vec = 0;
@@ -463,7 +458,7 @@ function CheckNodes(tar, now, checked, ok, ss) {
         return;
     }
     if (ss > 6000000) {
-        console.warn("stacking");
+        console.warn("stacked");
         return;
     }
     let l_has_it = station_edge_infos.get(now);
@@ -488,14 +483,11 @@ function GetArraysSharedElements(arr1, arr2) {
     return arr1.filter(function (x) { return arr2.includes(x); });
 }
 
-function LoopNum(val, min, max) {
-    if (val > max) {
-        return min;
-    } else if (val < min) {
-        return max;
-    } else {
-        return val;
-    }
+function InxIncrLoop(arr, inx, incr = true) {
+    incr ? inx++ : inx--;
+    if (inx >= arr.length) { return 0; }
+    else if (inx < 0) { return arr.length - 1; }
+    else { return inx; }
 }
 
 // Element helper functions
