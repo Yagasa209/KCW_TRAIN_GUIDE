@@ -1,4 +1,4 @@
-const g_Version = "0.20.1b";
+const g_Version = "0.20.1c";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
@@ -449,7 +449,6 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
         }
     }
 }
-
 //経路解析
 function CheckNodes(tar, now, checked, ok, ss) {
     checked.push(now);
@@ -457,21 +456,18 @@ function CheckNodes(tar, now, checked, ok, ss) {
         ok.push(checked);
         return;
     }
-    if (ss > 6000000) {
-        console.warn("stacked");
-        return;
-    }
     let l_has_it = station_edge_infos.get(now);
-    if (l_has_it != undefined) {
-        l_has_it.forEach(function (e) {
+    const next_call = function (e) {
+        try {
             if (!checked.includes(e)) { CheckNodes(tar, e, checked.slice(), ok, ss + 1); }
-        });
+        } catch {
+            console.warn("stacked : ", tar, now, e);
+        }
     }
+    l_has_it && l_has_it.forEach(next_call);
     l_has_it = walk_edge_infos.get(now);
-    if (!check_dont_use_walk.checked && l_has_it != undefined) {
-        l_has_it.forEach(function (e) {
-            if (!checked.includes(e)) { CheckNodes(tar, e, checked.slice(), ok, ss + 1); }
-        });
+    if (!check_dont_use_walk.checked) {
+        l_has_it && l_has_it.forEach(next_call);
     }
 }
 
