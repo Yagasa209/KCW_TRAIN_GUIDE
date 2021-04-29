@@ -1,4 +1,4 @@
-const g_Version = "0.20.1c";
+const g_Version = "0.20.1d";
 
 const RESULT_GROUP = 10;
 const WALK_CMD = 16384;
@@ -93,7 +93,7 @@ function InitGuide() { // Call From LastLine
     CreateMainForm();
     urlopti = new Map();
     const pair = location.search.substring(1).split('&');
-    for (var i = 0; pair[i]; i++) {
+    for (let i = 0; pair[i]; i++) {
         const kv = pair[i].split('=');
         if (kv[0] == "chaos") { check_chaos_mode.checked = kv[1] == "1"; continue; }
         if (kv[0] == "nwalk") { check_dont_use_walk.checked = kv[1] == "1"; continue; }
@@ -104,7 +104,7 @@ function InitGuide() { // Call From LastLine
     station_infos = new Map();
     station_edge_infos = new Map();
     // 路線データから駅を調べる。
-    for (var i = 0; i < trains.length; i++) {
+    for (let i = 0; i < trains.length; i++) {
         for (let g = 0; g < trains[i].stations.length; g++) {
             const name = trains[i].stations[g][0];
             if (!station_infos.has(name)) {
@@ -127,7 +127,7 @@ function InitGuide() { // Call From LastLine
     }
     walk_edge_infos = new Map();
     walk_ruby = new Map();
-    for (var i = 0; i < walk_data.length; i++) {
+    for (let i = 0; i < walk_data.length; i++) {
         const walkAr = walk_data[i][0]
         for (let k = 0; k < walkAr.length; k++) {
             const l_name = walkAr[k];
@@ -158,8 +158,8 @@ function InitGuide() { // Call From LastLine
         // SetSelectorOption(selector_via, sel_data[0], i, sel_data[1]);
     });
     const handle_selector_filter = function (selector, filter, keepInx = false) {
-        var first = -1;
-        for (var i = 0; i < selector.options.length; i++) {
+        let first = -1;
+        for (let i = 0; i < selector.options.length; i++) {
             var opt = selector.options[i];
             if (opt.getAttribute("data").startsWith(filter) || opt.textContent.startsWith(filter)) { // ok
                 opt.style.display = "";
@@ -231,7 +231,7 @@ function GuideCore() {
     // urlcreate
     let l_url = location.href.split('?')[0] + "?";
     const keys = Array.from(urlopti.keys());
-    for (var i = 0; i < keys.length; i++) {
+    for (let i = 0; i < keys.length; i++) {
         if (keys[i] != "from" && keys[i] != "to") {
             l_url += keys[i] + "=" + urlopti.get(keys[i]) + "&";
         }
@@ -254,7 +254,7 @@ function GuideCore() {
     }
     final_data = [];
     // 結果毎に路線解析
-    for (var i = 0; i < result.length; i++) {
+    for (let i = 0; i < result.length; i++) {
         let l_trains_data = [];
         RootParser(result[i], l_trains_data);
         final_data.push([result[i], l_trains_data[0], i]);
@@ -309,7 +309,7 @@ function SortResults(type) {
 
 function ShowRootResults(start) {
     root_result_area.textContent = null;
-    for (var i = start * RESULT_GROUP; i < (start + 1) * RESULT_GROUP && i < final_data.length; i++) {
+    for (let i = start * RESULT_GROUP; i < (start + 1) * RESULT_GROUP && i < final_data.length; i++) {
         const l_root_stations = final_data[i][0];
         const l_root_trains = final_data[i][1][1];
         const l_r_div = AddElement(root_result_area, "div", null, "background-color: #F2F2F2; margin: 8px 2px 0; outline: solid black 2px;");
@@ -383,7 +383,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
     let l_trains_walks = GetArraysSharedElements(station_infos.get(root[index]), station_infos.get(root[index + 1]));
     const l_has_walk = walk_edge_infos.get(root[index]);
     if (l_has_walk != undefined && l_has_walk.has(root[index + 1])) { l_trains_walks.push(WALK_CMD); }
-    for (var i = 0; i < l_trains_walks.length; i++) {
+    for (let i = 0; i < l_trains_walks.length; i++) {
         const l_train_inx = l_trains_walks[i];
         const l_train = trains[l_train_inx];
         if (l_train_inx != WALK_CMD) {
@@ -507,7 +507,7 @@ function AddElement(parent, tag, text = null, style = null) {
 function AddExCheckBox(parent, text, style = null) {
     let chb = AddElement(parent, "input");
     chb.type = "checkbox";
-    let span_d = AddElement(parent, "span", text, style);
+    let span_d = AddElement(parent, "b", text, style);
     span_d.onclick = function () { chb.checked = !chb.checked; }
     return chb;
 }
