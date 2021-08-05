@@ -1,7 +1,7 @@
-const g_Version = "0.21.0";
+const g_Version = "0.30.0-beta-1";
 
 const RESULT_GROUP = 10;
-const ROOT_LIMIT_RANGE = 5000;
+const ROOT_LIMIT_RANGE = 12500;
 const WALK_CMD = 16384;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
@@ -31,6 +31,8 @@ var station_infos = null;
 var station_edge_infos = null;
 var walk_edge_infos = null;
 var walk_ruby = null;
+var station_id_to_name = null;
+var station_name_to_id = null;
 // 最終結果
 var final_data = [];
 
@@ -101,46 +103,61 @@ function InitGuide() { // Call From LastLine
     }
 
     let station_selector_data = [];
-    station_infos = new Map();
-    station_edge_infos = new Map();
+    station_infos = [];
+    station_edge_infos = [];
+    station_id_to_name = [];
+    station_name_to_id = new Map();
+    let station_id = 0;
     // 路線データから駅を調べる。
     for (let i = 0; i < trains.length; i++) {
         for (let g = 0; g < trains[i].stations.length; g++) {
-            const name = trains[i].stations[g][0];
-            if (!station_infos.has(name)) {
-                station_infos.set(name, []);
-                station_selector_data.push([name, trains[i].stations[g][1]]);
-                station_edge_infos.set(name, new Set());
+            let now = 0;
+            if (!station_name_to_id.has(trains[i].stations[g][0])) {
+                station_id++;
+                now = station_id;
+                station_infos[now] = [];
+                station_selector_data.push([trains[i].stations[g][0], trains[i].stations[g][1]]);
+                station_edge_infos[now] = new Set();
+                station_id_to_name[now] = trains[i].stations[g][0];
+                station_name_to_id.set(trains[i].stations[g][0], now);
+            }else{
+                now = station_name_to_id.get(trains[i].stations[g][0]);
             }
-            station_infos.get(name).push(i);
+            station_infos[now].push(i);
             if (g - 1 >= 0) {
-                station_edge_infos.get(name).add(trains[i].stations[g - 1][0]);
-            } else if (trains[i].loop) {
-                station_edge_infos.get(name).add(trains[i].stations[trains[i].stations.length - 1][0]);
-            }
-            if (g + 1 < trains[i].stations.length) {
-                station_edge_infos.get(name).add(trains[i].stations[g + 1][0]);
-            } else if (trains[i].loop) {
-                station_edge_infos.get(name).add(trains[i].stations[0][0]);
+                station_edge_infos[now].add(station_name_to_id.get(trains[i].stations[g - 1][0])); // g - 1　は保証済み
+                station_edge_infos[station_name_to_id.get(trains[i].stations[g - 1][0])].add(now);
             }
         }
+        if (trains[i].loop) { // id振り分け終了後
+            station_edge_infos[station_name_to_id.get(trains[i].stations[0][0])].add(station_name_to_id.get(trains[i].stations[trains[i].stations.length - 1][0]));
+            station_edge_infos[station_name_to_id.get(trains[i].stations[trains[i].stations.length - 1][0])].add(station_name_to_id.get(trains[i].stations[0][0]));
+        }
     }
-    walk_edge_infos = new Map();
+    walk_edge_infos = [];
     walk_ruby = new Map();
     for (let i = 0; i < walk_data.length; i++) {
         const walkAr = walk_data[i][0]
         for (let k = 0; k < walkAr.length; k++) {
             const l_name = walkAr[k];
-            if (!station_infos.has(l_name)) {
-                station_infos.set(l_name, []); // dummy
+            let now = 0;
+            if (!station_name_to_id.has(l_name)) {
+                station_id++;
+                now = station_id;
+                station_infos[now] = []; // dummy
                 station_selector_data.push([l_name, walk_data[i][1][k]]);
+                station_name_to_id.set(l_name, now);
+            }else{
+                now = station_name_to_id.get(l_name);
             }
-            if (!walk_edge_infos.has(l_name)) {
-                walk_edge_infos.set(l_name, new Set());
+            if (!walk_edge_infos.includes(now)) {
+                walk_edge_infos[now] = new Set();
                 walk_ruby.set(l_name, walk_data[i][1][k]);
             }
+        }
+        for (let k = 0; k < walkAr.length; k++) {
             for (let j = 0; j < walkAr.length; j++) {
-                if (k != j) { walk_edge_infos.get(l_name).add(walkAr[j]); }
+                if (k != j) { walk_edge_infos[station_name_to_id.get(walkAr[k])].add(station_name_to_id.get(walkAr[j])); }
             }
         }
     }
@@ -197,7 +214,10 @@ function InitGuide() { // Call From LastLine
 }
 // Todo : async
 // core
+var flg_guide_gurd = false;
 function GuideCore() {
+    if(flg_guide_gurd){return;}
+    flg_guide_gurd = true;
     // init
     result_area.textContent = null;
     let from_st = null;
@@ -237,13 +257,15 @@ function GuideCore() {
         }
     }
     l_url += "from=" + from_st + "&" + "to=" + to_st;
+    from_st = station_name_to_id.get(from_st);
+    to_st = station_name_to_id.get(to_st);
     if (check_dont_use_walk.checked) { l_url += "&nwalk=1"; }
     url_cr_res.href = l_url;
     url_cr_res.textContent = "検索結果のリンク";
     let l_dbg_timer = Date.now();
     let result = [];
     // 経路解析。
-    CheckNodes(to_st, from_st, new Array(), result);
+    CheckNodes(to_st, from_st, new Array(), new Array(), result);
     console.log("Nodes: ", (Date.now() - l_dbg_timer));
     l_dbg_timer = Date.now();
     // if (selector_via.value != "NONE") {
@@ -290,6 +312,7 @@ function GuideCore() {
     l_result_sort_selector.onchange = function () { SortResults(l_result_sort_selector.value); }
     result_selector.onchange = function () { ShowRootResults(result_selector.selectedIndex); }
     SortResults(l_result_sort_selector.value);
+    flg_guide_gurd = false;
 };
 
 function SortResults(type) {
@@ -389,9 +412,8 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         return;
     }
     // 駅間共通路線&徒歩検証
-    let l_trains_walks = GetArraysSharedElements(station_infos.get(root[index]), station_infos.get(root[index + 1]));
-    let l_has_walk = walk_edge_infos.get(root[index]);
-    if (l_has_walk != undefined && l_has_walk.has(root[index + 1])) { l_trains_walks.push(WALK_CMD); }
+    let l_trains_walks = GetArraysSharedElements(station_infos[root[index]], station_infos[root[index + 1]]);
+    if (walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.push(WALK_CMD); }
     if(pretrain != null && l_trains_walks.includes(pretrain)){
         return RootParser(root, data, cache.concat([pretrain]), index + 1, pretrain, _inited, change_c);
     }
@@ -400,8 +422,8 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         const l_train = trains[l_train_inx];
         if (l_train_inx != WALK_CMD) {
             // この電車にとって隣接駅であるか
-            const l_st_index_a = IndexOfStation(l_train, root[index]);
-            const l_st_index_b = IndexOfStation(l_train, root[index + 1]);
+            const l_st_index_a = IndexOfStation(l_train, station_id_to_name[root[index]]);
+            const l_st_index_b = IndexOfStation(l_train, station_id_to_name[root[index + 1]]);
             if (l_train.loop) {
                 if (l_st_index_b != InxIncrLoop(l_train.stations, l_st_index_a) &&
                     l_st_index_b != InxIncrLoop(l_train.stations, l_st_index_a, false)) { continue; }
@@ -413,7 +435,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         if (pretrain != null && pretrain != l_train_inx) {
             if (pretrain != WALK_CMD && l_train_inx != WALK_CMD) {
                 const l_train_pre = trains[pretrain];
-                if (!l_train_pre.Direct || !l_train_pre.Direct[l_train.name] || l_train_pre.Direct[l_train.name] != root[index]) {
+                if (!l_train_pre.Direct || !l_train_pre.Direct[l_train.name] || l_train_pre.Direct[l_train.name] != station_id_to_name[root[index]]) {
                     l_change_vec = 1;
                 }
             } else {
@@ -429,6 +451,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
 }
 
 function CreateResult(div, train, station, opt = null, subtrain = null) {
+    station = station_id_to_name[station];
     const l_par = AddElement(div, "div");
     if (train != WALK_CMD) {
         const sta_info = IndexOfStation(train, station);
@@ -462,22 +485,23 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
     }
 }
 //経路解析
-function CheckNodes(tar, now, checked, ok) {
+function CheckNodes(tar, now, checked, flg, ok) {
     checked.push(now);
+    flg[now] = true;
     if (tar == now) {
         ok.push(checked);
         return;
     }
     const next_call = function (e) {
         try {
-            if (!checked.includes(e)) { CheckNodes(tar, e, checked.slice(), ok); }
+            if (flg[e] != true) { CheckNodes(tar, e, checked.slice(), flg.slice(), ok); }
         } catch {
             console.warn("stacked : ", tar, now, e);
         }
     }
-    let l_has_it = station_edge_infos.get(now);
+    let l_has_it = station_edge_infos[now];
     l_has_it && l_has_it.forEach(next_call);
-    l_has_it = walk_edge_infos.get(now);
+    l_has_it = walk_edge_infos[now];
     if (!check_dont_use_walk.checked) {
         l_has_it && l_has_it.forEach(next_call);
     }
