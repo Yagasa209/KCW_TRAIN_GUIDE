@@ -1,14 +1,16 @@
-const g_Version = "0.30.0-beta-1";
+const g_Version = "0.30.0-beta-2";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 12500;
 const WALK_CMD = 16384;
+const INTL_AVG_RANGE = 2;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
 
 // options
 var check_dont_use_walk = null;
 var check_dont_use_limit = null;
+var check_dont_use_intl = null;
 
 // elements
 var selector_from = null;
@@ -61,6 +63,8 @@ function CreateMainForm() {
     AddElement(main_div, "br");
     check_dont_use_limit = AddExCheckBox(main_div, " [解析数制限を解除(危険)]", "color: red;");
     AddElement(main_div, "br");
+    check_dont_use_intl = AddExCheckBox(main_div, " [超高速探索モードを無効化(危険)]", "color: red;");
+    AddElement(main_div, "br");
     AddElement(main_div, "br");
     AddElement(main_div, "button", "検索する").onclick = GuideCore;
     AddElement(main_div, "button", "FromとToを入替", "margin-left: 25px;").onclick = function () {
@@ -84,7 +88,6 @@ function CreateMainForm() {
     AddElement(main_div, "br");
     all_station_count = AddElement(main_div, "span");
     AddElement(main_div, "br");
-
     AddElement(main_div, "br");
     AddElement(main_div, "span", "version : " + g_Version);
     AddElement(main_div, "br");
@@ -265,7 +268,7 @@ function GuideCore() {
     let l_dbg_timer = Date.now();
     let result = [];
     // 経路解析。
-    CheckNodes(to_st, from_st, new Array(), new Array(), result);
+    CheckNodes(to_st, from_st, new Array(station_id_to_name.length), new Array(station_id_to_name.length), result);
     console.log("Nodes: ", (Date.now() - l_dbg_timer));
     l_dbg_timer = Date.now();
     // if (selector_via.value != "NONE") {
@@ -378,7 +381,7 @@ function ShowRootResults(start) {
                     } else if (l_root_trains[r] == WALK_CMD) {
                         CreateResult(l_r_div, l_pretrain_o, l_root_stations[r], "降車");
                     } else {
-                        if (!l_pretrain_o.Direct || !l_pretrain_o.Direct[l_train_o.name] || l_pretrain_o.Direct[l_train_o.name] != l_root_stations[r]) {
+                        if (!l_pretrain_o.Direct || !l_pretrain_o.Direct[l_train_o.name] || l_pretrain_o.Direct[l_train_o.name] != station_id_to_name[l_root_stations[r]]) {
                             CreateResult(l_r_div, l_pretrain_o, l_root_stations[r], "乗換", l_train_o);
                         } else {
                             CreateResult(l_r_div, l_pretrain_o, l_root_stations[r], "直通", l_train_o);
@@ -485,16 +488,21 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
     }
 }
 //経路解析
-function CheckNodes(tar, now, checked, flg, ok) {
-    checked.push(now);
+function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
+    checked[sinx] = now;
     flg[now] = true;
     if (tar == now) {
-        ok.push(checked);
+        ok.push(checked.slice(0, sinx + 1));
+        ok["sum"] = ok["sum"] || 0;
+        ok["avg"] = ok["avg"] || 0;
+        ok["sum"] += sinx;
+        ok["avg"] = ok["sum"] / ok.length;
         return;
     }
+    if(!check_dont_use_intl.checked && ok["avg"] && sinx > ok["avg"] + INTL_AVG_RANGE) { return; }
     const next_call = function (e) {
         try {
-            if (flg[e] != true) { CheckNodes(tar, e, checked.slice(), flg.slice(), ok); }
+            if (flg[e] != true) { CheckNodes(tar, e, checked.slice(), flg.slice(), ok, sinx + 1); }
         } catch {
             console.warn("stacked : ", tar, now, e);
         }
