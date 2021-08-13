@@ -1,4 +1,4 @@
-const g_Version = "0.30.0-beta-3";
+const g_Version = "0.30.0-beta-3b";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 12500;
@@ -381,7 +381,7 @@ function ShowRootResults(start) {
                     } else if (l_root_trains[r] == WALK_CMD) {
                         CreateResult(l_r_div, l_pretrain_o, l_root_stations[r], "降車");
                     } else {
-                        if (!l_pretrain_o.Direct || !l_pretrain_o.Direct[l_train_o.name] || l_pretrain_o.Direct[l_train_o.name] != station_id_to_name[l_root_stations[r]]) {
+                        if (!l_pretrain_o.direct || !l_pretrain_o.direct[l_train_o.name] || l_pretrain_o.direct[l_train_o.name] != station_id_to_name[l_root_stations[r]]) {
                             CreateResult(l_r_div, l_pretrain_o, l_root_stations[r], "乗換", l_train_o);
                         } else {
                             CreateResult(l_r_div, l_pretrain_o, l_root_stations[r], "直通", l_train_o);
@@ -438,7 +438,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         if (pretrain != null && pretrain != l_train_inx) {
             if (pretrain != WALK_CMD && l_train_inx != WALK_CMD) {
                 const l_train_pre = trains[pretrain];
-                if (!l_train_pre.Direct || !l_train_pre.Direct[l_train.name] || l_train_pre.Direct[l_train.name] != station_id_to_name[root[index]]) {
+                if (!l_train_pre.direct || !l_train_pre.direct[l_train.name] || l_train_pre.direct[l_train.name] != station_id_to_name[root[index]]) {
                     l_change_vec = 1;
                 }
             } else {
