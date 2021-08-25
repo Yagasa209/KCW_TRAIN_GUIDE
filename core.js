@@ -1,4 +1,4 @@
-const g_Version = "0.30.0-beta-3b";
+const g_Version = "0.30.0-beta-4";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 12500;
@@ -268,7 +268,7 @@ function GuideCore() {
     let l_dbg_timer = Date.now();
     let result = [];
     // 経路解析。
-    CheckNodes(to_st, from_st, new Array(station_id_to_name.length), new Array(station_id_to_name.length), result);
+    CheckNodes(to_st, from_st, new Array(station_id_to_name.length), new BitFlg(station_id_to_name.length + 5), result);
     console.log("Nodes: ", (Date.now() - l_dbg_timer));
     l_dbg_timer = Date.now();
     // if (selector_via.value != "NONE") {
@@ -403,14 +403,15 @@ function ShowRootResults(start) {
 
 // 路線データを解析。(再帰関数)
 function RootParser(root, data, cache = null, index = 0, pretrain = null, _inited = false, change_c = 0) {
-    cache = cache || [];
+    cache = cache || new Array(root.length - 1);
     if (index >= root.length - 1) {
+        var nc = cache.slice()
         if (data[0]) {
             if (data[0][0] > change_c) {
-                data[0] = [change_c, cache];
+                data[0] = [change_c, nc];
             }
         } else {
-            data[0] = [change_c, cache];
+            data[0] = [change_c, nc];
         }
         return;
     }
@@ -418,7 +419,8 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
     let l_trains_walks = GetArraysSharedElements(station_infos[root[index]], station_infos[root[index + 1]]);
     if (walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.push(WALK_CMD); }
     if (pretrain != null && l_trains_walks.includes(pretrain)) {
-        return RootParser(root, data, cache.concat([pretrain]), index + 1, pretrain, _inited, change_c);
+        cache[index] = pretrain;
+        return RootParser(root, data, cache, index + 1, pretrain, _inited, change_c);
     }
     for (let i = 0; i < l_trains_walks.length; i++) {
         const l_train_inx = l_trains_walks[i];
@@ -449,7 +451,8 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
                 }
             }
         }
-        RootParser(root, data, cache.concat([l_train_inx]), index + 1, l_train_inx, _inited, change_c + l_change_vec);
+        cache[index] = l_train_inx;
+        RootParser(root, data, cache, index + 1, l_train_inx, _inited, change_c + l_change_vec);
     }
 }
 
@@ -490,7 +493,7 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
 //経路解析
 function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
     checked[sinx] = now;
-    flg[now] = true;
+    flg.set(now);
     if (tar == now) {
         ok.push(checked.slice(0, sinx + 1));
         ok["sum"] = ok["sum"] || 0;
@@ -501,9 +504,9 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
     if (!check_dont_use_intl.checked && ok["avg"] && sinx > ok["avg"] + INTL_AVG_RANGE) { return; }
     const next_call = function (e) {
         try {
-            if (flg[e] != true) { CheckNodes(tar, e, checked, flg.slice(), ok, sinx + 1); }
-        } catch {
-            console.warn("stacked : ", tar, now, e);
+            if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
+        } catch(exp) {
+            console.warn("stacked : ", tar, now, e, exp);
         }
     }
     station_edge_infos[now] && station_edge_infos[now].forEach(next_call);
@@ -527,6 +530,26 @@ function InxIncrLoop(arr, inx, incr = true) {
     else { return inx; }
 }
 
+class BitFlg{
+    constructor(cap){
+        this.LIMIT = 30;
+        if(typeof cap == "number") this.bits = new Array(Math.ceil(cap / this.LIMIT) + 1).fill(0);
+        else this.bits = cap.slice();
+    }
+    set(dig){
+        const section = Math.floor(dig / this.LIMIT);
+        const bit = dig % this.LIMIT;
+        this.bits[section] |= 1 << bit;
+    }
+    get(dig){
+        const section = Math.floor(dig / this.LIMIT);
+        const bit = dig % this.LIMIT;
+        return (this.bits[section] & 1 << bit) == 1 << bit;
+    }
+    copy(){
+        return new BitFlg(this.bits);
+    }
+}
 // Element helper functions
 
 function SetSelectorOption(selctor, text, val = null, data = null) {
