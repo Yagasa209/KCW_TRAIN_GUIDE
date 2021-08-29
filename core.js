@@ -1,9 +1,10 @@
-const g_Version = "0.30.0-beta-4";
+const g_Version = "0.30.0-beta-5";
 
 const RESULT_GROUP = 10;
-const ROOT_LIMIT_RANGE = 12500;
+const ROOT_LIMIT_RANGE = 15000;
 const WALK_CMD = 16384;
 const INTL_AVG_RANGE = 2;
+const STATIONS_BUFF = 255;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
 
@@ -27,14 +28,13 @@ var result_selector = null;
 
 // Objects
 var urlopti = null;
-// 駅毎の、その駅に止まる列車の情報のMAP。
-var station_infos = null;
 // 駅毎の、隣接駅の情報のMAP。
 var station_edge_infos = null;
 var walk_edge_infos = null;
 var walk_ruby = null;
 var station_id_to_name = null;
 var station_name_to_id = null;
+var stations_shared_train = null;
 // 最終結果
 var final_data = [];
 
@@ -106,10 +106,16 @@ function InitGuide() { // Call From LastLine
     }
 
     let station_selector_data = [];
-    station_infos = [];
     station_edge_infos = [];
     station_id_to_name = [];
     station_name_to_id = new Map();
+    stations_shared_train = new Array(STATIONS_BUFF);
+    for (let i = 0; i < STATIONS_BUFF; i++) {
+        stations_shared_train[i] = new Array(STATIONS_BUFF);
+        for (let j = 0; j < STATIONS_BUFF; j++) {
+            stations_shared_train[i][j] = new Set();
+        }
+    }
     let station_id = 0;
     // 路線データから駅を調べる。
     for (let i = 0; i < trains.length; i++) {
@@ -118,7 +124,6 @@ function InitGuide() { // Call From LastLine
             if (!station_name_to_id.has(trains[i].stations[g][0])) {
                 station_id++;
                 now = station_id;
-                station_infos[now] = [];
                 station_selector_data.push([trains[i].stations[g][0], trains[i].stations[g][1]]);
                 station_edge_infos[now] = new Set();
                 station_id_to_name[now] = trains[i].stations[g][0];
@@ -126,15 +131,21 @@ function InitGuide() { // Call From LastLine
             } else {
                 now = station_name_to_id.get(trains[i].stations[g][0]);
             }
-            station_infos[now].push(i);
             if (g - 1 >= 0) {
-                station_edge_infos[now].add(station_name_to_id.get(trains[i].stations[g - 1][0])); // g - 1　は保証済み
-                station_edge_infos[station_name_to_id.get(trains[i].stations[g - 1][0])].add(now);
+                let l_targ = station_name_to_id.get(trains[i].stations[g - 1][0]);
+                station_edge_infos[now].add(l_targ); // g - 1　は保証済み
+                station_edge_infos[l_targ].add(now);
+                stations_shared_train[now][l_targ].add(i);
+                stations_shared_train[l_targ][now].add(i);
             }
         }
         if (trains[i].loop) { // id振り分け終了後
-            station_edge_infos[station_name_to_id.get(trains[i].stations[0][0])].add(station_name_to_id.get(trains[i].stations[trains[i].stations.length - 1][0]));
-            station_edge_infos[station_name_to_id.get(trains[i].stations[trains[i].stations.length - 1][0])].add(station_name_to_id.get(trains[i].stations[0][0]));
+            let l_targ_1 = station_name_to_id.get(trains[i].stations[0][0]);
+            let l_targ_2 = station_name_to_id.get(trains[i].stations[trains[i].stations.length - 1][0]);
+            station_edge_infos[l_targ_1].add(l_targ_2);
+            station_edge_infos[l_targ_2].add(l_targ_1);
+            stations_shared_train[l_targ_1][l_targ_2].add(i);
+            stations_shared_train[l_targ_2][l_targ_1].add(i);
         }
     }
     walk_edge_infos = [];
@@ -147,7 +158,6 @@ function InitGuide() { // Call From LastLine
             if (!station_name_to_id.has(l_name)) {
                 station_id++;
                 now = station_id;
-                station_infos[now] = []; // dummy
                 station_selector_data.push([l_name, walk_data[i][1][k]]);
                 station_name_to_id.set(l_name, now);
             } else {
@@ -268,7 +278,7 @@ function GuideCore() {
     let l_dbg_timer = Date.now();
     let result = [];
     // 経路解析。
-    CheckNodes(to_st, from_st, new Array(station_id_to_name.length), new BitFlg(station_id_to_name.length + 5), result);
+    CheckNodes(to_st, from_st, new Array(station_id_to_name.length), new BitFlg(station_id_to_name.length + 2), result);
     console.log("Nodes: ", (Date.now() - l_dbg_timer));
     l_dbg_timer = Date.now();
     // if (selector_via.value != "NONE") {
@@ -416,23 +426,17 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         return;
     }
     // 駅間共通路線&徒歩検証
-    let l_trains_walks = GetArraysSharedElements(station_infos[root[index]], station_infos[root[index + 1]]);
-    if (walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.push(WALK_CMD); }
-    if (pretrain != null && l_trains_walks.includes(pretrain)) {
+    let l_trains_walks = stations_shared_train[root[index]][root[index + 1]];
+    if (!check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.add(WALK_CMD); }
+    if (pretrain != null && l_trains_walks.has(pretrain)) {
         cache[index] = pretrain;
         return RootParser(root, data, cache, index + 1, pretrain, _inited, change_c);
     }
-    for (let i = 0; i < l_trains_walks.length; i++) {
-        const l_train_inx = l_trains_walks[i];
+    l_trains_walks.forEach(function (l_train_inx) {
         const l_train = trains[l_train_inx];
         if (l_train_inx != WALK_CMD) {
             // この電車にとって隣接駅であるか
-            const l_st_index_a = IndexOfStation(l_train, station_id_to_name[root[index]]);
-            const l_st_index_b = IndexOfStation(l_train, station_id_to_name[root[index + 1]]);
-            if (l_train.loop) {
-                if (l_st_index_b != InxIncrLoop(l_train.stations, l_st_index_a) &&
-                    l_st_index_b != InxIncrLoop(l_train.stations, l_st_index_a, false)) { continue; }
-            } else if (Math.abs(l_st_index_a - l_st_index_b) != 1) { continue; }
+            if (!stations_shared_train[root[index]][root[index + 1]].has(l_train_inx)) { return; }
         }
 
         let l_change_vec = 0;
@@ -453,7 +457,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         }
         cache[index] = l_train_inx;
         RootParser(root, data, cache, index + 1, l_train_inx, _inited, change_c + l_change_vec);
-    }
+    });
 }
 
 function CreateResult(div, train, station, opt = null, subtrain = null) {
@@ -505,7 +509,7 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
     const next_call = function (e) {
         try {
             if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
-        } catch(exp) {
+        } catch (exp) {
             console.warn("stacked : ", tar, now, e, exp);
         }
     }
@@ -530,23 +534,23 @@ function InxIncrLoop(arr, inx, incr = true) {
     else { return inx; }
 }
 
-class BitFlg{
-    constructor(cap){
+class BitFlg {
+    constructor(cap) {
         this.LIMIT = 30;
-        if(typeof cap == "number") this.bits = new Array(Math.ceil(cap / this.LIMIT) + 1).fill(0);
+        if (typeof cap == "number") this.bits = new Array(Math.ceil(cap / this.LIMIT) + 1).fill(0);
         else this.bits = cap.slice();
     }
-    set(dig){
+    set(dig) {
         const section = Math.floor(dig / this.LIMIT);
         const bit = dig % this.LIMIT;
         this.bits[section] |= 1 << bit;
     }
-    get(dig){
+    get(dig) {
         const section = Math.floor(dig / this.LIMIT);
         const bit = dig % this.LIMIT;
         return (this.bits[section] & 1 << bit) == 1 << bit;
     }
-    copy(){
+    copy() {
         return new BitFlg(this.bits);
     }
 }
