@@ -1,10 +1,11 @@
-const g_Version = "0.30.0-beta-6";
+const g_Version = "0.30.0-beta-7";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
 const WALK_CMD = 16384;
 const INTL_MIN_RANGE = 10;
 const STATIONS_BUFF = 255;
+const RESULT_BUFFER = 1 << 16;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
 
@@ -233,6 +234,7 @@ function GuideCore() {
     flg_guide_gurd = true;
     // init
     result_area.textContent = null;
+    final_data = null; // mem free
     let from_st = null;
     let to_st = null;
     let st_get_faild = false;
@@ -276,7 +278,7 @@ function GuideCore() {
     url_cr_res.href = l_url;
     url_cr_res.textContent = "検索結果のリンク";
     let l_dbg_timer = Date.now();
-    let result = [];
+    let result = new Array(RESULT_BUFFER);
     // 経路解析。
     CheckNodes(to_st, from_st, new Array(station_id_to_name.length), new BitFlg(station_id_to_name.length + 2), result);
     console.log("Nodes: ", (Date.now() - l_dbg_timer));
@@ -284,24 +286,24 @@ function GuideCore() {
     // if (selector_via.value != "NONE") {
     //     result = result.filter(function (x) { return x.includes(l_via_sta); });
     // }
-    if (result.length == 0) {
+    if (_Check_nodes_pos == 0) {
         AddElement(result_area, "b", "Info : 経路が見つかりませんでした。");
         return;
     }
-    if (!check_dont_use_limit.checked && result.length > ROOT_LIMIT_RANGE * 2) {
+    if (!check_dont_use_limit.checked && _Check_nodes_pos > ROOT_LIMIT_RANGE * 2) {
         result.sort(function (a, b) {
             return a.length - b.length;
         })
         let l_spl_1 = result.slice(0, ROOT_LIMIT_RANGE);
-        let l_spl_2 = result.slice(result.length - ROOT_LIMIT_RANGE);
+        let l_spl_2 = result.slice(_Check_nodes_pos - ROOT_LIMIT_RANGE);
         result = l_spl_1.concat(l_spl_2);
     }
-    final_data = [];
+    final_data = new Array(_Check_nodes_pos);
     // 結果毎に路線解析
-    for (let i = 0; i < result.length; i++) {
+    for (let i = 0; i < _Check_nodes_pos; i++) {
         let l_trains_data = [];
         RootParser(result[i], l_trains_data);
-        final_data.push([result[i], l_trains_data[0], i]);
+        final_data[i] = [result[i], l_trains_data[0], i];
     }
     console.log("RootParse: ", (Date.now() - l_dbg_timer));
     const l_all_result_groups = final_data.length / RESULT_GROUP;
@@ -415,23 +417,29 @@ function ShowRootResults(start) {
 function RootParser(root, data, cache = null, index = 0, pretrain = null, _inited = false, change_c = 0) {
     cache = cache || new Array(root.length - 1);
     if (index >= root.length - 1) {
-        var nc = cache.slice()
-        if (data[0]) {
-            if (data[0][0] > change_c) {
-                data[0] = [change_c, nc];
-            }
-        } else {
-            data[0] = [change_c, nc];
+        if (data[0] == undefined || (data[0][0] > change_c)) {
+            data[0] = [change_c, cache.slice()];
         }
         return;
     }
     // 駅間共通路線&徒歩検証
-    let l_trains_walks = stations_shared_train[root[index]][root[index + 1]];
-    if (!check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.add(WALK_CMD); }
-    if (pretrain != null && l_trains_walks.has(pretrain)) {
-        cache[index] = pretrain;
-        return RootParser(root, data, cache, index + 1, pretrain, _inited, change_c);
+    let l_trains_walks;
+    while (true) { //　行けるところまで同一路線で行く
+        l_trains_walks = stations_shared_train[root[index]][root[index + 1]];
+        if (!check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.add(WALK_CMD); }
+        if (pretrain != null && l_trains_walks.has(pretrain)) {
+            cache[index] = pretrain;
+            if (index + 1 < root.length - 1) {
+                index++;
+            } else {
+                RootParser(root, data, cache, index + 1, pretrain, _inited, change_c);
+                return;
+            }
+        } else {
+            break;
+        }
     }
+
     l_trains_walks.forEach(function (l_train_inx) {
         const l_train = trains[l_train_inx];
         if (l_train_inx != WALK_CMD) {
@@ -499,13 +507,22 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
 }
 
 var _Check_nodes_min = STATIONS_BUFF;
+var _Check_nodes_pos = 0;
 //経路解析
 function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
-    if (sinx == 0) { _Check_nodes_min = STATIONS_BUFF; }
+    if (sinx == 0) {
+        _Check_nodes_min = STATIONS_BUFF;
+        _Check_nodes_pos = 0;
+    }
     checked[sinx] = now;
     flg.set(now);
     if (tar == now) {
-        ok.push(checked.slice(0, sinx + 1));
+        if (_Check_nodes_pos >= RESULT_BUFFER) {
+            ok.push(checked.slice(0, sinx + 1));
+        } else {
+            ok[_Check_nodes_pos] = checked.slice(0, sinx + 1);
+        }
+        _Check_nodes_pos++;
         _Check_nodes_min = Math.min(_Check_nodes_min, sinx);
         return;
     }
