@@ -1,9 +1,9 @@
-const g_Version = "0.30.0-beta-5";
+const g_Version = "0.30.0-beta-6";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
 const WALK_CMD = 16384;
-const INTL_AVG_RANGE = 2;
+const INTL_MIN_RANGE = 10;
 const STATIONS_BUFF = 255;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
@@ -163,7 +163,7 @@ function InitGuide() { // Call From LastLine
             } else {
                 now = station_name_to_id.get(l_name);
             }
-            if (!walk_edge_infos.includes(now)) {
+            if (!walk_edge_infos[now]) {
                 walk_edge_infos[now] = new Set();
                 walk_ruby.set(l_name, walk_data[i][1][k]);
             }
@@ -389,7 +389,7 @@ function ShowRootResults(start) {
                     if (l_root_trains[r - 1] == WALK_CMD) {
                         CreateResult(l_r_div, WALK_CMD, l_root_stations[r], "乗車", l_train_o);
                     } else if (l_root_trains[r] == WALK_CMD) {
-                        CreateResult(l_r_div, l_pretrain_o, l_root_stations[r], "降車");
+                        CreateResult(l_r_div, l_pretrain_o, l_root_stations[r], "降車", WALK_CMD);
                     } else {
                         if (!l_pretrain_o.direct || !l_pretrain_o.direct[l_train_o.name] || l_pretrain_o.direct[l_train_o.name] != station_id_to_name[l_root_stations[r]]) {
                             CreateResult(l_r_div, l_pretrain_o, l_root_stations[r], "乗換", l_train_o);
@@ -484,7 +484,10 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
         const opt_span = AddElement(l_par, "span", null, "display: inline-block;");
         AddElement(opt_span, "span", "[" + opt + "]", "font-weight: bold; margin: 0 5px;");
         // 他の路線の情報を追加
-        if (subtrain != null) {
+        if (subtrain == WALK_CMD) {
+            AddElement(opt_span, "span", "●徒歩\t");
+        }
+        else if (subtrain != null) {
             if (subtrain.id != "") {
                 AddElement(opt_span, "span", "■" + subtrain.id + ":" + (subtrain.display_name || subtrain.name), "color:" + subtrain.color);
             }
@@ -494,18 +497,19 @@ function CreateResult(div, train, station, opt = null, subtrain = null) {
         }
     }
 }
+
+var _Check_nodes_min = STATIONS_BUFF;
 //経路解析
 function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
+    if (sinx == 0) { _Check_nodes_min = STATIONS_BUFF; }
     checked[sinx] = now;
     flg.set(now);
     if (tar == now) {
         ok.push(checked.slice(0, sinx + 1));
-        ok["sum"] = ok["sum"] || 0;
-        ok["sum"] += sinx;
-        ok["avg"] = ok["sum"] / ok.length;
+        _Check_nodes_min = Math.min(_Check_nodes_min, sinx);
         return;
     }
-    if (!check_dont_use_intl.checked && ok["avg"] && sinx > ok["avg"] + INTL_AVG_RANGE) { return; }
+    if (!check_dont_use_intl.checked && sinx > _Check_nodes_min + INTL_MIN_RANGE) { return; }
     const next_call = function (e) {
         try {
             if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
@@ -521,10 +525,6 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
 
 function IndexOfStation(train, name) {
     return train.stations.findIndex(function (x) { return x[0] == name; });
-}
-
-function GetArraysSharedElements(arr1, arr2) {
-    return arr1.filter(function (x) { return arr2.includes(x); });
 }
 
 function InxIncrLoop(arr, inx, incr = true) {
