@@ -1,4 +1,4 @@
-const g_Version = "0.30.0-beta-7";
+const g_Version = "0.30.0-beta-8";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
@@ -26,6 +26,7 @@ var url_cr_res = null;
 var all_station_count = null;
 var root_result_area = null;
 var result_selector = null;
+var result_wait = null;
 
 // Objects
 var urlopti = null;
@@ -67,7 +68,7 @@ function CreateMainForm() {
     check_dont_use_intl = AddExCheckBox(main_div, " [超高速探索モードを無効化(危険)]", "color: red;");
     AddElement(main_div, "br");
     AddElement(main_div, "br");
-    AddElement(main_div, "button", "検索する").onclick = GuideCore;
+    AddElement(main_div, "button", "検索する").onclick = PreGuideCore;
     AddElement(main_div, "button", "FromとToを入替", "margin-left: 25px;").onclick = function () {
         const l_from_s = selector_from.options.selectedIndex;
         selector_from.options.selectedIndex = selector_to.options.selectedIndex;
@@ -79,8 +80,8 @@ function CreateMainForm() {
         selector_to_filter.oninput(true);
     }
     AddElement(main_div, "br");
-    url_cr_res = AddElement(main_div, "a", "", "font-size: 11px;");
-    AddElement(main_div, "br");
+    result_wait = AddElement(main_div, "div");
+    url_cr_res = AddElement(main_div, "a", "", "font-size: 11px; display: inline-block; margin-top: 13px;");
     result_area = AddElement(main_div, "div");
     AddElement(main_div, "br");
 
@@ -223,17 +224,34 @@ function InitGuide() { // Call From LastLine
         if (l_sta_inx_to >= 0) {
             selector_to.options.selectedIndex = l_sta_inx_to;
         }
-        if (l_sta_inx_from >= 0 && l_sta_inx_to >= 0) { GuideCore(); }
+        if (l_sta_inx_from >= 0 && l_sta_inx_to >= 0) { PreGuideCore(); }
     }
 }
 // Todo : async
 // core
 var flg_guide_gurd = false;
-function GuideCore() {
+async function PreGuideCore() {
     if (flg_guide_gurd) { return; }
     flg_guide_gurd = true;
-    // init
+    result_wait.textContent = null;
     result_area.textContent = null;
+    url_cr_res.textContent = null;
+    AddElement(result_wait, "b", "検索中です...");
+    try {
+        await new Promise(function (res, rej) {
+            setTimeout(function () {
+                GuideCore();
+                res();
+            }, 1); // hack;
+        });
+    } catch (exp) {
+        alert("Error: \n" + exp);
+    }
+    result_wait.textContent = null;;
+    flg_guide_gurd = false;
+}
+function GuideCore() {
+    // init
     final_data = null; // mem free
     let from_st = null;
     let to_st = null;
@@ -297,6 +315,7 @@ function GuideCore() {
         let l_spl_1 = result.slice(0, ROOT_LIMIT_RANGE);
         let l_spl_2 = result.slice(_Check_nodes_pos - ROOT_LIMIT_RANGE);
         result = l_spl_1.concat(l_spl_2);
+        _Check_nodes_pos = ROOT_LIMIT_RANGE * 2;
     }
     final_data = new Array(_Check_nodes_pos);
     // 結果毎に路線解析
@@ -310,15 +329,14 @@ function GuideCore() {
     AddElement(result_area, "b", "Result Group : ");
     result_selector = AddElement(result_area, "select");
     AddElement(result_area, "br");
-    AddElement(result_area, "br");
     for (let i = 0; i < l_all_result_groups; i++) {
         const l_first_s_num = i * RESULT_GROUP + 1;
         let l_last_s_num = (i + 1) * RESULT_GROUP;
         if (l_last_s_num > final_data.length) { l_last_s_num = final_data.length; }
         SetSelectorOption(result_selector, "経路 " + l_first_s_num + " ~ 経路 " + l_last_s_num);
     }
-    AddElement(result_area, "b", "Sort Type :", "margin-right: 35px;");
-    const l_result_sort_selector = AddElement(result_area, "select");
+    AddElement(result_area, "b", "Sort Type :", "margin-right: 35px; margin-top: 15px;");
+    const l_result_sort_selector = AddElement(result_area, "select", null, "margin-top: 15px;");
     AddElement(result_area, "br");
     SetSelectorOption(l_result_sort_selector, "乗換数順", "CHA");
     SetSelectorOption(l_result_sort_selector, "駅数順", "STA");
@@ -327,7 +345,6 @@ function GuideCore() {
     l_result_sort_selector.onchange = function () { SortResults(l_result_sort_selector.value); }
     result_selector.onchange = function () { ShowRootResults(result_selector.selectedIndex); }
     SortResults(l_result_sort_selector.value);
-    flg_guide_gurd = false;
 };
 
 function SortResults(type) {
@@ -416,6 +433,9 @@ function ShowRootResults(start) {
 // 路線データを解析。(再帰関数)
 function RootParser(root, data, cache = null, index = 0, pretrain = null, _inited = false, change_c = 0) {
     cache = cache || new Array(root.length - 1);
+    if (data[0] != undefined && data[0][0] < change_c) {
+        return;
+    }
     if (index >= root.length - 1) {
         if (data[0] == undefined || (data[0][0] > change_c)) {
             data[0] = [change_c, cache.slice()];
@@ -427,6 +447,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
     while (true) { //　行けるところまで同一路線で行く
         l_trains_walks = stations_shared_train[root[index]][root[index + 1]];
         if (!check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.add(WALK_CMD); }
+        if (pretrain != WALK_CMD && pretrain != null && trains[pretrain].direct) { break; } // directが厄介
         if (pretrain != null && l_trains_walks.has(pretrain)) {
             cache[index] = pretrain;
             if (index + 1 < root.length - 1) {
