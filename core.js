@@ -1,11 +1,11 @@
-const g_Version = "0.30.0-beta-8";
+const g_Version = "0.30.0-beta-9";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
 const WALK_CMD = 16384;
 const INTL_MIN_RANGE = 10;
 const STATIONS_BUFF = 255;
-const RESULT_BUFFER = 1 << 16;
+const RESULT_BUFFER = 100000;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
 
@@ -121,6 +121,7 @@ function InitGuide() { // Call From LastLine
     let station_id = 0;
     // 路線データから駅を調べる。
     for (let i = 0; i < trains.length; i++) {
+        trains[i].station_index = new Array(STATIONS_BUFF);
         for (let g = 0; g < trains[i].stations.length; g++) {
             let now = 0;
             if (!station_name_to_id.has(trains[i].stations[g][0])) {
@@ -139,6 +140,14 @@ function InitGuide() { // Call From LastLine
                 station_edge_infos[l_targ].add(now);
                 stations_shared_train[now][l_targ].add(i);
                 stations_shared_train[l_targ][now].add(i);
+            }
+            trains[i].station_index[now] = g;
+        }
+        if (trains[i].direct) {
+            let l_dirkey = Object.keys(trains[i].direct);
+            trains[i].direct_station = new Set();
+            for(let d = 0; d < l_dirkey.length; d++){
+                trains[i].direct_station.add(station_name_to_id.get(trains[i].direct[l_dirkey[d]]));
             }
         }
         if (trains[i].loop) { // id振り分け終了後
@@ -227,7 +236,7 @@ function InitGuide() { // Call From LastLine
         if (l_sta_inx_from >= 0 && l_sta_inx_to >= 0) { PreGuideCore(); }
     }
 }
-// Todo : async
+
 // core
 var flg_guide_gurd = false;
 async function PreGuideCore() {
@@ -447,7 +456,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
     while (true) { //　行けるところまで同一路線で行く
         l_trains_walks = stations_shared_train[root[index]][root[index + 1]];
         if (!check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.add(WALK_CMD); }
-        if (pretrain != WALK_CMD && pretrain != null && trains[pretrain].direct) { break; } // directが厄介
+        if (pretrain != WALK_CMD && pretrain != null && trains[pretrain].direct_station != undefined && trains[pretrain].direct_station.has(root[index])) { break; } // directが厄介
         if (pretrain != null && l_trains_walks.has(pretrain)) {
             cache[index] = pretrain;
             if (index + 1 < root.length - 1) {
@@ -489,21 +498,21 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
     });
 }
 
-function CreateResult(div, train, station, opt = null, subtrain = null) {
-    station = station_id_to_name[station];
+function CreateResult(div, train, station_id, opt = null, subtrain = null) {
+    let station = station_id_to_name[station_id];
     const l_par = AddElement(div, "div");
     if (train != WALK_CMD) {
-        const sta_info = IndexOfStation(train, station);
+        const sta_info = train.stations[train.station_index[station_id]];
         // Idや■を追加
         if (train.id == "") { // no tr id
-            AddElement(l_par, "span", "■" + train.stations[sta_info][2] + "\t", "color: " + train.color);
-        } else if (train.stations[sta_info][2] == "") { // has tr id, no sta id
+            AddElement(l_par, "span", "■" + sta_info[2] + "\t", "color: " + train.color);
+        } else if (sta_info[2] == "") { // has tr id, no sta id
             AddElement(l_par, "span", "■" + train.id + "\t", "color: " + train.color);
         } else {
-            AddElement(l_par, "span", "■" + train.id + "-" + train.stations[sta_info][2] + "\t", "color: " + train.color);
+            AddElement(l_par, "span", "■" + train.id + "-" + sta_info[2] + "\t", "color: " + train.color);
         }
         // 駅名を追加
-        AddElement(l_par, "span", station).title = train.stations[sta_info][1];
+        AddElement(l_par, "span", station).title = sta_info[1];
     } else {
         AddElement(l_par, "span", "●徒歩\t");
         AddElement(l_par, "span", station).title = walk_ruby.get(station);
@@ -559,10 +568,6 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
     if (!check_dont_use_walk.checked) {
         walk_edge_infos[now] && walk_edge_infos[now].forEach(next_call);
     }
-}
-
-function IndexOfStation(train, name) {
-    return train.stations.findIndex(function (x) { return x[0] == name; });
 }
 
 function InxIncrLoop(arr, inx, incr = true) {
