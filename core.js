@@ -1,4 +1,4 @@
-const g_Version = "0.30.0-beta-9";
+const g_Version = "0.30.0-beta-10";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
@@ -336,6 +336,7 @@ function GuideCore() {
     }
     console.log("RootParse: ", (Date.now() - l_dbg_timer));
     const l_all_result_groups = final_data.length / RESULT_GROUP;
+    AddElement(result_area, "span", "[DEBUG] TOTAL DFS CALL: " + __DBG_Check_nodes_call, "display: block; font-size: 10px;")
     AddElement(result_area, "b", "Result Group : ");
     result_selector = AddElement(result_area, "select");
     AddElement(result_area, "br");
@@ -455,10 +456,12 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
     // 駅間共通路線&徒歩検証
     let l_trains_walks;
     while (true) { //　行けるところまで同一路線で行く
-        l_trains_walks = stations_shared_train[root[index]][root[index + 1]];
-        if (!check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.add(WALK_CMD); }
+        l_trains_walks = stations_shared_train[root[index]][root[index + 1]]; // 共通
         if (pretrain != WALK_CMD && pretrain != null && trains[pretrain].direct_station != undefined && trains[pretrain].direct_station.has(root[index])) { break; } // directが厄介
-        if (pretrain != null && l_trains_walks.has(pretrain)) {
+        if (
+            (pretrain == WALK_CMD && !check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) ||
+            (pretrain != null && l_trains_walks.has(pretrain))
+        ) {
             cache[index] = pretrain;
             if (index + 1 < root.length - 1) {
                 index++;
@@ -471,6 +474,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         }
     }
 
+    if (!check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.add(WALK_CMD); }
     for (l_train_inx of l_trains_walks) {
         const l_train = trains[l_train_inx];
         if (l_train_inx != WALK_CMD) {
@@ -539,12 +543,15 @@ function CreateResult(div, train, station_id, opt = null, subtrain = null) {
 
 var _Check_nodes_min = STATIONS_BUFF;
 var _Check_nodes_pos = 0;
+var __DBG_Check_nodes_call = 0;
 //経路解析
 function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
     if (sinx == 0) {
+        __DBG_Check_nodes_call = 0;
         _Check_nodes_min = STATIONS_BUFF;
         _Check_nodes_pos = 0;
     }
+    __DBG_Check_nodes_call++;
     checked[sinx] = now;
     flg.set(now);
     if (tar == now) {
@@ -560,18 +567,16 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
     if (!check_dont_use_intl.checked && sinx > _Check_nodes_min + INTL_MIN_RANGE) { return; }
     if (sinx > STATIONS_BUFF) {
         console.warn("stacked : ", tar, now);
-    }
-    const next_call = function (e) {
-        if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
+        return;
     }
     if (station_edge_infos[now]) {
-        for (let edge of station_edge_infos[now]) {
-            next_call(edge);
+        for (let e of station_edge_infos[now]) {
+            if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
         }
     }
     if (!check_dont_use_walk.checked && walk_edge_infos[now]) {
-        for (let edge of walk_edge_infos[now]) {
-            next_call(edge);
+        for (let e of walk_edge_infos[now]) {
+            if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
         };
     }
 }
