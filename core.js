@@ -2,9 +2,9 @@ const g_Version = "0.30.0-beta-9";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
-const WALK_CMD = 16384;
+const WALK_CMD = 16384; //　総路線数より十分に大きい。
 const INTL_MIN_RANGE = 10;
-const STATIONS_BUFF = 255;
+const STATIONS_BUFF = 255; // 総駅数より十分に大きい。
 const RESULT_BUFFER = 100000;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
@@ -146,7 +146,7 @@ function InitGuide() { // Call From LastLine
         if (trains[i].direct) {
             let l_dirkey = Object.keys(trains[i].direct);
             trains[i].direct_station = new Set();
-            for(let d = 0; d < l_dirkey.length; d++){
+            for (let d = 0; d < l_dirkey.length; d++) {
                 trains[i].direct_station.add(station_name_to_id.get(trains[i].direct[l_dirkey[d]]));
             }
         }
@@ -193,11 +193,12 @@ function InitGuide() { // Call From LastLine
     // セレクター作成。
     // Todo :  via, "指定しない"をfilter時に消さない
     // SetSelectorOption(selector_via, "*指定しない", "NONE", "していしない");
-    station_selector_data.forEach(function (sel_data, i) {
+    for (let i = 0; i < station_selector_data.length; i++) {
+        const sel_data = station_selector_data[i];
         SetSelectorOption(selector_from, sel_data[0], i, sel_data[1]);
         SetSelectorOption(selector_to, sel_data[0], i, sel_data[1]);
         // SetSelectorOption(selector_via, sel_data[0], i, sel_data[1]);
-    });
+    }
     const handle_selector_filter = function (selector, filter, keepInx = false) {
         let first = -1;
         for (let i = 0; i < selector.options.length; i++) {
@@ -470,7 +471,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         }
     }
 
-    l_trains_walks.forEach(function (l_train_inx) {
+    for (l_train_inx of l_trains_walks) {
         const l_train = trains[l_train_inx];
         if (l_train_inx != WALK_CMD) {
             // この電車にとって隣接駅であるか
@@ -495,7 +496,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         }
         cache[index] = l_train_inx;
         RootParser(root, data, cache, index + 1, l_train_inx, _inited, change_c + l_change_vec);
-    });
+    }
 }
 
 function CreateResult(div, train, station_id, opt = null, subtrain = null) {
@@ -557,16 +558,21 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
         return;
     }
     if (!check_dont_use_intl.checked && sinx > _Check_nodes_min + INTL_MIN_RANGE) { return; }
+    if (sinx > STATIONS_BUFF) {
+        console.warn("stacked : ", tar, now);
+    }
     const next_call = function (e) {
-        try {
-            if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
-        } catch (exp) {
-            console.warn("stacked : ", tar, now, e, exp);
+        if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
+    }
+    if (station_edge_infos[now]) {
+        for (let edge of station_edge_infos[now]) {
+            next_call(edge);
         }
     }
-    station_edge_infos[now] && station_edge_infos[now].forEach(next_call);
-    if (!check_dont_use_walk.checked) {
-        walk_edge_infos[now] && walk_edge_infos[now].forEach(next_call);
+    if (!check_dont_use_walk.checked && walk_edge_infos[now]) {
+        for (let edge of walk_edge_infos[now]) {
+            next_call(edge);
+        };
     }
 }
 
