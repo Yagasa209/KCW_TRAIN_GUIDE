@@ -1,9 +1,8 @@
-const g_Version = "0.30.0-beta-10";
+const g_Version = "0.30.0-rc1";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
 const WALK_CMD = 16384; //　総路線数より十分に大きい。
-const INTL_MIN_RANGE = 10;
 const STATIONS_BUFF = 255; // 総駅数より十分に大きい。
 const RESULT_BUFFER = 100000;
 
@@ -12,7 +11,8 @@ const main_div = AddElement(document.getElementById("guide_main"), "div", null, 
 // options
 var check_dont_use_walk = null;
 var check_dont_use_limit = null;
-var check_dont_use_intl = null;
+var selector_preprocess = null;
+var selector_fast_mode = null;
 
 // elements
 var selector_from = null;
@@ -40,6 +40,18 @@ var stations_shared_train = null;
 // 最終結果
 var final_data = [];
 
+var WarshallFloyd = null;
+var flg_WarshallFloyded = false;
+
+const PREPROCESS_DU = "DYNAMIC";
+const PREPROCESS_WF = "WARSHALL";
+
+const FAST_MODE_NONE = "NONE";
+const FAST_MODE_LIT = "LITTLE";
+const FAST_MODE_MID = "MIDDLE";
+const FAST_MODE_BIG = "BIG";
+var _Intl_Min_Range = 10;
+
 function CreateMainForm() {
     main_div.textContent = null;
     AddElement(main_div, "p", "[乗り換え案内]", "font-weight: bold;");
@@ -63,9 +75,21 @@ function CreateMainForm() {
     AddElement(main_div, "br");
     check_dont_use_walk = AddExCheckBox(main_div, " [歩く経路を含まない]");
     AddElement(main_div, "br");
-    check_dont_use_limit = AddExCheckBox(main_div, " [解析数制限を解除(危険)]", "color: red;");
+    check_dont_use_limit = AddExCheckBox(main_div, " [解析数制限を解除(非推奨)]");
     AddElement(main_div, "br");
-    check_dont_use_intl = AddExCheckBox(main_div, " [超高速探索モードを無効化(危険)]", "color: red;");
+    AddElement(main_div, "b", "高速化方式: ");
+    selector_preprocess = AddElement(main_div, "select");
+    SetSelectorOption(selector_preprocess, "動的更新（非推奨）", PREPROCESS_DU);
+    SetSelectorOption(selector_preprocess, "事前解析 (推奨)", PREPROCESS_WF);
+    selector_preprocess.value = PREPROCESS_WF;
+    AddElement(main_div, "br");
+    AddElement(main_div, "b", "高速化形態: ");
+    selector_fast_mode = AddElement(main_div, "select");
+    SetSelectorOption(selector_fast_mode, "超高速-低精度", FAST_MODE_LIT);
+    SetSelectorOption(selector_fast_mode, "高速(推奨)", FAST_MODE_MID);
+    SetSelectorOption(selector_fast_mode, "高精度", FAST_MODE_BIG);
+    SetSelectorOption(selector_fast_mode, "ロスレス(非推奨)", FAST_MODE_NONE);
+    selector_fast_mode.value = FAST_MODE_MID;
     AddElement(main_div, "br");
     AddElement(main_div, "br");
     AddElement(main_div, "button", "検索する").onclick = PreGuideCore;
@@ -112,10 +136,13 @@ function InitGuide() { // Call From LastLine
     station_id_to_name = [];
     station_name_to_id = new Map();
     stations_shared_train = new Array(STATIONS_BUFF);
+    WarshallFloyd = new Array(STATIONS_BUFF);
     for (let i = 0; i < STATIONS_BUFF; i++) {
         stations_shared_train[i] = new Array(STATIONS_BUFF);
+        WarshallFloyd[i] = new Array(STATIONS_BUFF);
         for (let j = 0; j < STATIONS_BUFF; j++) {
             stations_shared_train[i][j] = new Set();
+            WarshallFloyd[i][j] = STATIONS_BUFF; // fast
         }
     }
     let station_id = 0;
@@ -140,6 +167,8 @@ function InitGuide() { // Call From LastLine
                 station_edge_infos[l_targ].add(now);
                 stations_shared_train[now][l_targ].add(i);
                 stations_shared_train[l_targ][now].add(i);
+                WarshallFloyd[now][l_targ] = 1;
+                WarshallFloyd[l_targ][now] = 1;
             }
             trains[i].station_index[now] = g;
         }
@@ -157,6 +186,8 @@ function InitGuide() { // Call From LastLine
             station_edge_infos[l_targ_2].add(l_targ_1);
             stations_shared_train[l_targ_1][l_targ_2].add(i);
             stations_shared_train[l_targ_2][l_targ_1].add(i);
+            WarshallFloyd[l_targ_1][l_targ_2] = 1;
+            WarshallFloyd[l_targ_2][l_targ_1] = 1;
         }
     }
     walk_edge_infos = [];
@@ -181,7 +212,13 @@ function InitGuide() { // Call From LastLine
         }
         for (let k = 0; k < walkAr.length; k++) {
             for (let j = 0; j < walkAr.length; j++) {
-                if (k != j) { walk_edge_infos[station_name_to_id.get(walkAr[k])].add(station_name_to_id.get(walkAr[j])); }
+                if (k != j) {
+                    let l_targ_1 = station_name_to_id.get(walkAr[k]);
+                    let l_targ_2 = station_name_to_id.get(walkAr[j]);
+                    walk_edge_infos[l_targ_1].add(l_targ_2);
+                    WarshallFloyd[l_targ_1][l_targ_2] = 1;
+                    WarshallFloyd[l_targ_2][l_targ_1] = 1;
+                }
             }
         }
     }
@@ -305,12 +342,35 @@ function GuideCore() {
     if (check_dont_use_walk.checked) { l_url += "&nwalk=1"; }
     url_cr_res.href = l_url;
     url_cr_res.textContent = "検索結果のリンク";
-    let l_dbg_timer = Date.now();
+    switch(selector_fast_mode.value){
+        case FAST_MODE_NONE: _Intl_Min_Range = STATIONS_BUFF; break;
+        case FAST_MODE_LIT: _Intl_Min_Range = 5; break;
+        case FAST_MODE_MID: _Intl_Min_Range = 10; break;
+        case FAST_MODE_BIG: _Intl_Min_Range = 20; break;
+    }
+    console.log("============================================");
+    console.time("PRE-PROCESS");
+    switch (selector_preprocess.value) {
+        case PREPROCESS_DU: _Check_nodes_min = STATIONS_BUFF; break;
+        case PREPROCESS_WF:
+            {
+                if (!flg_WarshallFloyded) {
+                    for (let l_wk = 0; l_wk < STATIONS_BUFF; l_wk++)
+                        for (let l_wi = 0; l_wi < STATIONS_BUFF; l_wi++)
+                            for (let l_wj = 0; l_wj < STATIONS_BUFF; l_wj++)
+                                WarshallFloyd[l_wi][l_wj] = Math.min(WarshallFloyd[l_wi][l_wj], WarshallFloyd[l_wi][l_wk] + WarshallFloyd[l_wk][l_wj]);
+                    flg_WarshallFloyded = true;
+                }
+                _Check_nodes_min = WarshallFloyd[from_st][to_st]
+            }
+            break;
+    }
+    console.timeEnd("PRE-PROCESS")
+    console.time("CHECK-NODES");
     let result = new Array(RESULT_BUFFER);
     // 経路解析。
     CheckNodes(to_st, from_st, new Array(station_id_to_name.length), new BitFlg(station_id_to_name.length + 2), result);
-    console.log("Nodes: ", (Date.now() - l_dbg_timer));
-    l_dbg_timer = Date.now();
+    console.timeEnd("CHECK-NODES");
     // if (selector_via.value != "NONE") {
     //     result = result.filter(function (x) { return x.includes(l_via_sta); });
     // }
@@ -318,6 +378,8 @@ function GuideCore() {
         AddElement(result_area, "b", "Info : 経路が見つかりませんでした。");
         return;
     }
+    console.log("SHORTEST PATH:", _Check_nodes_min);
+    console.log("RAW ROOT RESULT:", _Check_nodes_pos);
     if (!check_dont_use_limit.checked && _Check_nodes_pos > ROOT_LIMIT_RANGE * 2) {
         result.sort(function (a, b) {
             return a.length - b.length;
@@ -327,6 +389,7 @@ function GuideCore() {
         result = l_spl_1.concat(l_spl_2);
         _Check_nodes_pos = ROOT_LIMIT_RANGE * 2;
     }
+    console.time("ROOT-PARSE")
     final_data = new Array(_Check_nodes_pos);
     // 結果毎に路線解析
     for (let i = 0; i < _Check_nodes_pos; i++) {
@@ -334,9 +397,9 @@ function GuideCore() {
         RootParser(result[i], l_trains_data);
         final_data[i] = [result[i], l_trains_data[0], i];
     }
-    console.log("RootParse: ", (Date.now() - l_dbg_timer));
+    console.timeEnd("ROOT-PARSE");
     const l_all_result_groups = final_data.length / RESULT_GROUP;
-    AddElement(result_area, "span", "[DEBUG] TOTAL DFS CALL: " + __DBG_Check_nodes_call, "display: block; font-size: 10px;")
+    console.log("TOTAL DFS CALL:", __DBG_Check_nodes_call);
     AddElement(result_area, "b", "Result Group : ");
     result_selector = AddElement(result_area, "select");
     AddElement(result_area, "br");
@@ -548,7 +611,6 @@ var __DBG_Check_nodes_call = 0;
 function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
     if (sinx == 0) {
         __DBG_Check_nodes_call = 0;
-        _Check_nodes_min = STATIONS_BUFF;
         _Check_nodes_pos = 0;
     }
     __DBG_Check_nodes_call++;
@@ -564,7 +626,7 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
         _Check_nodes_min = Math.min(_Check_nodes_min, sinx);
         return;
     }
-    if (!check_dont_use_intl.checked && sinx > _Check_nodes_min + INTL_MIN_RANGE) { return; }
+    if (sinx >= _Check_nodes_min + _Intl_Min_Range) { return; }
     if (sinx > STATIONS_BUFF) {
         console.warn("stacked : ", tar, now);
         return;
@@ -591,7 +653,11 @@ function InxIncrLoop(arr, inx, incr = true) {
 class BitFlg {
     constructor(cap) {
         this.LIMIT = 30;
-        if (typeof cap == "number") this.bits = new Array(Math.ceil(cap / this.LIMIT) + 1).fill(0);
+        if (typeof cap == "number") {
+            const len = Math.ceil(cap / this.LIMIT) + 1;
+            this.bits = new Array(len);
+            for (let i = 0; i < len; i++) this.bits[i] = 0;
+        }
         else this.bits = cap.slice();
     }
     set(dig) {
