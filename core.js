@@ -1,4 +1,4 @@
-const g_Version = "0.30.0-rc2";
+const g_Version = "0.30.0-rc2b";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
@@ -355,6 +355,7 @@ function GuideCore() {
     }
     console.log("============================================");
     console.time("PRE-PROCESS");
+    // Todo: 歩き無視+動的更新?
     switch (selector_preprocess.value) {
         case PREPROCESS_DU: _Check_nodes_min = STATIONS_BUFF; break;
         case PREPROCESS_WF:
@@ -379,11 +380,21 @@ function GuideCore() {
                     bfs_cache[from_st][from_st] = 0;
                     while (l_q.count() > 0) {
                         let l_n = l_q.pop();
-                        for (let l_e of station_edge_infos[l_n]) {
-                            if (bfs_cache[from_st][l_e] > bfs_cache[from_st][l_n] + 1) {
-                                bfs_cache[from_st][l_e] = bfs_cache[from_st][l_n] + 1;
-                                l_q.push(l_e);
+                        if (station_edge_infos[l_n]) {
+                            for (let l_e of station_edge_infos[l_n]) {
+                                if (bfs_cache[from_st][l_e] > bfs_cache[from_st][l_n] + 1) {
+                                    bfs_cache[from_st][l_e] = bfs_cache[from_st][l_n] + 1;
+                                    l_q.push(l_e);
+                                }
                             }
+                        }
+                        if (!check_dont_use_walk.checked && walk_edge_infos[l_n]) {
+                            for (let l_e of walk_edge_infos[l_n]) {
+                                if (bfs_cache[from_st][l_e] > bfs_cache[from_st][l_n] + 1) {
+                                    bfs_cache[from_st][l_e] = bfs_cache[from_st][l_n] + 1;
+                                    l_q.push(l_e);
+                                }
+                            };
                         }
                     }
                 }
