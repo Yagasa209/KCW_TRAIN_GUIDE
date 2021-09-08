@@ -1,4 +1,4 @@
-const g_Version = "0.30.0-rc1";
+const g_Version = "0.30.0-rc2";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
@@ -38,13 +38,15 @@ var station_id_to_name = null;
 var station_name_to_id = null;
 var stations_shared_train = null;
 // 最終結果
-var final_data = [];
+var final_data = null;
 
 var WarshallFloyd = null;
 var flg_WarshallFloyded = false;
+var bfs_cache = null;
 
 const PREPROCESS_DU = "DYNAMIC";
 const PREPROCESS_WF = "WARSHALL";
+const PREPROCESS_BF = "BFS";
 
 const FAST_MODE_NONE = "NONE";
 const FAST_MODE_LIT = "LITTLE";
@@ -73,15 +75,17 @@ function CreateMainForm() {
     // AddElement(main_div, "br");
     // selector_via_filter = AddTextBox(main_div, "filter");
     AddElement(main_div, "br");
-    check_dont_use_walk = AddExCheckBox(main_div, " [歩く経路を含まない]");
-    AddElement(main_div, "br");
+    // check_dont_use_walk = AddExCheckBox(main_div, " [歩く経路を含まない]");
+    // AddElement(main_div, "br");
+    check_dont_use_walk = { "checked": false } // hack
     check_dont_use_limit = AddExCheckBox(main_div, " [解析数制限を解除(非推奨)]");
     AddElement(main_div, "br");
     AddElement(main_div, "b", "高速化方式: ");
     selector_preprocess = AddElement(main_div, "select");
     SetSelectorOption(selector_preprocess, "動的更新（非推奨）", PREPROCESS_DU);
-    SetSelectorOption(selector_preprocess, "事前解析 (推奨)", PREPROCESS_WF);
-    selector_preprocess.value = PREPROCESS_WF;
+    SetSelectorOption(selector_preprocess, "部分事前解析 (推奨)", PREPROCESS_BF);
+    SetSelectorOption(selector_preprocess, "全域事前解析", PREPROCESS_WF);
+    selector_preprocess.value = PREPROCESS_BF;
     AddElement(main_div, "br");
     AddElement(main_div, "b", "高速化形態: ");
     selector_fast_mode = AddElement(main_div, "select");
@@ -145,6 +149,7 @@ function InitGuide() { // Call From LastLine
             WarshallFloyd[i][j] = STATIONS_BUFF; // fast
         }
     }
+    bfs_cache = new Array(STATIONS_BUFF);
     let station_id = 0;
     // 路線データから駅を調べる。
     for (let i = 0; i < trains.length; i++) {
@@ -342,7 +347,7 @@ function GuideCore() {
     if (check_dont_use_walk.checked) { l_url += "&nwalk=1"; }
     url_cr_res.href = l_url;
     url_cr_res.textContent = "検索結果のリンク";
-    switch(selector_fast_mode.value){
+    switch (selector_fast_mode.value) {
         case FAST_MODE_NONE: _Intl_Min_Range = STATIONS_BUFF; break;
         case FAST_MODE_LIT: _Intl_Min_Range = 5; break;
         case FAST_MODE_MID: _Intl_Min_Range = 10; break;
@@ -364,6 +369,28 @@ function GuideCore() {
                 _Check_nodes_min = WarshallFloyd[from_st][to_st]
             }
             break;
+        case PREPROCESS_BF:
+            {
+                if (bfs_cache[from_st] == undefined) {
+                    let l_q = new Queue(STATIONS_BUFF * 2);
+                    bfs_cache[from_st] = new Array(STATIONS_BUFF);
+                    for (let i = 0; i < STATIONS_BUFF; i++) bfs_cache[from_st][i] = STATIONS_BUFF;
+                    l_q.push(from_st);
+                    bfs_cache[from_st][from_st] = 0;
+                    while (l_q.count() > 0) {
+                        let l_n = l_q.pop();
+                        for (let l_e of station_edge_infos[l_n]) {
+                            if (bfs_cache[from_st][l_e] > bfs_cache[from_st][l_n] + 1) {
+                                bfs_cache[from_st][l_e] = bfs_cache[from_st][l_n] + 1;
+                                l_q.push(l_e);
+                            }
+                        }
+                    }
+                }
+                _Check_nodes_min = bfs_cache[from_st][to_st];
+            }
+            break;
+        default: _Check_nodes_min = STATIONS_BUFF;
     }
     console.timeEnd("PRE-PROCESS")
     console.time("CHECK-NODES");
@@ -674,6 +701,24 @@ class BitFlg {
         return new BitFlg(this.bits);
     }
 }
+
+class Queue {
+    constructor(cap = 512) {
+        this.__queue = new Array(cap);
+        this.__start = 0;
+        this.__end = 0;
+    }
+    count() { return this.__end - this.__start; }
+    push(e) { this.__queue[this.__end++] = e; }
+    peek() { return (this.count() > 0) ? this.__queue[this.__start] : null; }
+    pop() { return (this.count() > 0) ? this.__queue[this.__start++] : null; }
+    memClean() {
+        this.__end -= this.__start;
+        this.__queue = this.__queue.slice(this.__start);
+        this.__start = 0;
+    }
+}
+
 // Element helper functions
 
 function SetSelectorOption(selctor, text, val = null, data = null) {
