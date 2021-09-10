@@ -1,4 +1,4 @@
-const g_Version = "0.30.0-rc2b";
+const g_Version = "0.30.0-rc3";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
@@ -9,7 +9,6 @@ const RESULT_BUFFER = 100000;
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
 
 // options
-var check_dont_use_walk = null;
 var check_dont_use_limit = null;
 var selector_preprocess = null;
 var selector_fast_mode = null;
@@ -28,8 +27,6 @@ var root_result_area = null;
 var result_selector = null;
 var result_wait = null;
 
-// Objects
-var urlopti = null;
 // 駅毎の、隣接駅の情報のMAP。
 var station_edge_infos = null;
 var walk_edge_infos = null;
@@ -54,7 +51,11 @@ const FAST_MODE_MID = "MIDDLE";
 const FAST_MODE_BIG = "BIG";
 var _Intl_Min_Range = 10;
 
-function CreateMainForm() {
+const URL_OPT_DONT_WALK = "nwalk";
+const URL_OPT_TO = "to";
+const URL_OPT_FROM = "from";
+
+function CreateMainForm(opt) {
     main_div.textContent = null;
     AddElement(main_div, "p", "[乗り換え案内]", "font-weight: bold;");
     AddElement(main_div, "b", "From:");
@@ -75,9 +76,14 @@ function CreateMainForm() {
     // AddElement(main_div, "br");
     // selector_via_filter = AddTextBox(main_div, "filter");
     AddElement(main_div, "br");
-    // check_dont_use_walk = AddExCheckBox(main_div, " [歩く経路を含まない]");
-    // AddElement(main_div, "br");
-    check_dont_use_walk = { "checked": false } // hack
+    let l_dont_walk = opt.get(URL_OPT_DONT_WALK) == "1";
+    AddElement(main_div, "b", "徒歩ルート: [" + (l_dont_walk ? "無効] " : "有効] "));
+    if (l_dont_walk) {
+        AddElement(main_div, "a", "徒歩ルートを有効化").href = CreateUrlWithOption({}, [URL_OPT_DONT_WALK]);
+    } else {
+        AddElement(main_div, "a", "徒歩ルートを無効化").href = CreateUrlWithOption({ [URL_OPT_DONT_WALK]: "1" });
+    }
+    AddElement(main_div, "br");
     check_dont_use_limit = AddExCheckBox(main_div, " [解析数制限を解除(非推奨)]");
     AddElement(main_div, "br");
     AddElement(main_div, "b", "高速化方式: ");
@@ -113,7 +119,6 @@ function CreateMainForm() {
     result_area = AddElement(main_div, "div");
     AddElement(main_div, "br");
 
-    if (typeof DataPatcher == 'function') { DataPatcher(); }
     AddElement(main_div, "span", "路線総数 : " + trains.length);
     AddElement(main_div, "br");
     all_station_count = AddElement(main_div, "span");
@@ -126,14 +131,10 @@ function CreateMainForm() {
 
 //set up
 function InitGuide() { // Call From LastLine
-    CreateMainForm();
-    urlopti = new Map();
-    const pair = location.search.substring(1).split('&');
-    for (let i = 0; pair[i]; i++) {
-        const kv = pair[i].split('=');
-        if (kv[0] == "nwalk") { check_dont_use_walk.checked = kv[1] == "1"; continue; }
-        urlopti.set(kv[0], decodeURIComponent(kv[1]));
-    }
+    if (typeof DataPatcher == 'function') DataPatcher();
+    urlopti = GetUrlOption();
+    if (urlopti.get(URL_OPT_DONT_WALK) == "1") walk_data = [];
+    CreateMainForm(urlopti);
 
     let station_selector_data = [];
     station_edge_infos = [];
@@ -223,6 +224,8 @@ function InitGuide() { // Call From LastLine
                     walk_edge_infos[l_targ_1].add(l_targ_2);
                     WarshallFloyd[l_targ_1][l_targ_2] = 1;
                     WarshallFloyd[l_targ_2][l_targ_1] = 1;
+                    stations_shared_train[l_targ_1][l_targ_2].add(WALK_CMD);
+                    stations_shared_train[l_targ_2][l_targ_1].add(WALK_CMD);
                 }
             }
         }
@@ -261,15 +264,15 @@ function InitGuide() { // Call From LastLine
     selector_to_filter.oninput = function (kp) { handle_selector_filter(selector_to, selector_to_filter.value, kp == true); };
     // selector_via_filter.oninput = function () { handle_selector_filter(selector_via, selector_via_filter.value); };
 
-    if (urlopti.has("from") || urlopti.has("to")) {
-        const from_val = urlopti.get("from");
+    if (urlopti.has(URL_OPT_FROM) || urlopti.has(URL_OPT_TO)) {
+        const from_val = urlopti.get(URL_OPT_FROM);
         const l_sta_inx_from = station_selector_data.findIndex(function (x) {
             return x[0] == from_val;
         });
         if (l_sta_inx_from >= 0) {
             selector_from.options.selectedIndex = l_sta_inx_from;
         }
-        const to_val = urlopti.get("to");
+        const to_val = urlopti.get(URL_OPT_TO);
         const l_sta_inx_to = station_selector_data.findIndex(function (x) {
             return x[0] == to_val;
         });
@@ -334,19 +337,11 @@ function GuideCore() {
     }
 
     // urlcreate
-    let l_url = location.href.split('?')[0] + "?";
-    const keys = Array.from(urlopti.keys());
-    for (let i = 0; i < keys.length; i++) {
-        if (keys[i] != "from" && keys[i] != "to") {
-            l_url += keys[i] + "=" + urlopti.get(keys[i]) + "&";
-        }
-    }
-    l_url += "from=" + from_st + "&" + "to=" + to_st;
+    url_cr_res.href = CreateUrlWithOption({ [URL_OPT_FROM]: from_st, [URL_OPT_TO]: to_st });
+    url_cr_res.textContent = "検索結果のリンク";
+
     from_st = station_name_to_id.get(from_st);
     to_st = station_name_to_id.get(to_st);
-    if (check_dont_use_walk.checked) { l_url += "&nwalk=1"; }
-    url_cr_res.href = l_url;
-    url_cr_res.textContent = "検索結果のリンク";
     switch (selector_fast_mode.value) {
         case FAST_MODE_NONE: _Intl_Min_Range = STATIONS_BUFF; break;
         case FAST_MODE_LIT: _Intl_Min_Range = 5; break;
@@ -388,7 +383,7 @@ function GuideCore() {
                                 }
                             }
                         }
-                        if (!check_dont_use_walk.checked && walk_edge_infos[l_n]) {
+                        if (walk_edge_infos[l_n]) {
                             for (let l_e of walk_edge_infos[l_n]) {
                                 if (bfs_cache[from_st][l_e] > bfs_cache[from_st][l_n] + 1) {
                                     bfs_cache[from_st][l_e] = bfs_cache[from_st][l_n] + 1;
@@ -454,8 +449,13 @@ function GuideCore() {
     SetSelectorOption(l_result_sort_selector, "駅数順", "STA");
     SetSelectorOption(l_result_sort_selector, "算出順", "RAW");
     root_result_area = AddElement(result_area, "div");
+    console.log("============================================");
     l_result_sort_selector.onchange = function () { SortResults(l_result_sort_selector.value); }
-    result_selector.onchange = function () { ShowRootResults(result_selector.selectedIndex); }
+    result_selector.onchange = function () {
+        console.time("SHOW-RESULT");
+        ShowRootResults(result_selector.selectedIndex);
+        console.timeEnd("SHOW-RESULT");
+    }
     SortResults(l_result_sort_selector.value);
 };
 
@@ -559,10 +559,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
     while (true) { //　行けるところまで同一路線で行く
         l_trains_walks = stations_shared_train[root[index]][root[index + 1]]; // 共通
         if (pretrain != WALK_CMD && pretrain != null && trains[pretrain].direct_station != undefined && trains[pretrain].direct_station.has(root[index])) { break; } // directが厄介
-        if (
-            (pretrain == WALK_CMD && !check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) ||
-            (pretrain != null && l_trains_walks.has(pretrain))
-        ) {
+        if (pretrain != null && l_trains_walks.has(pretrain)) {
             cache[index] = pretrain;
             if (index + 1 < root.length - 1) {
                 index++;
@@ -575,7 +572,6 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         }
     }
 
-    if (!check_dont_use_walk.checked && walk_edge_infos[root[index]] && walk_edge_infos[root[index]].has(root[index + 1])) { l_trains_walks.add(WALK_CMD); }
     for (l_train_inx of l_trains_walks) {
         const l_train = trains[l_train_inx];
         if (l_train_inx != WALK_CMD) {
@@ -653,7 +649,6 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
     }
     __DBG_Check_nodes_call++;
     checked[sinx] = now;
-    flg.set(now);
     if (tar == now) {
         if (_Check_nodes_pos >= RESULT_BUFFER) {
             ok.push(checked.slice(0, sinx + 1));
@@ -669,12 +664,13 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
         console.warn("stacked : ", tar, now);
         return;
     }
+    flg.set(now);
     if (station_edge_infos[now]) {
         for (let e of station_edge_infos[now]) {
             if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
         }
     }
-    if (!check_dont_use_walk.checked && walk_edge_infos[now]) {
+    if (walk_edge_infos[now]) {
         for (let e of walk_edge_infos[now]) {
             if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
         };
@@ -728,6 +724,27 @@ class Queue {
         this.__queue = this.__queue.slice(this.__start);
         this.__start = 0;
     }
+}
+
+function GetUrlOption() {
+    let opt = new Map();
+    const pair = location.search.substring(1).split('&');
+    for (let i = 0; i < pair.length; i++) {
+        const kv = pair[i].split('=');
+        opt.set(kv[0], decodeURIComponent(kv[1]));
+    }
+    return opt;
+}
+
+function CreateUrlWithOption(opt_obj = {}, del_opt_ar = []) {
+    let base_opt = GetUrlOption();
+    let opt_key_ar = Array.from(Object.keys(opt_obj));
+    for (let i = 0; i < opt_key_ar.length; i++) base_opt.set(opt_key_ar[i], opt_obj[opt_key_ar[i]]);
+    for (let i = 0; i < del_opt_ar.length; i++) base_opt.delete(del_opt_ar[i]);
+    let opt_ar = [];
+    opt_key_ar = Array.from(base_opt.keys());
+    for (let i = 0; i < opt_key_ar.length; i++) opt_ar.push(opt_key_ar[i] + "=" + base_opt.get(opt_key_ar[i]));
+    return location.href.split('?')[0] + "?" + opt_ar.join("&");
 }
 
 // Element helper functions
