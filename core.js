@@ -1,4 +1,4 @@
-const g_Version = "0.30.0-rc3";
+const g_Version = "0.30.0-rc3b";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
@@ -93,8 +93,8 @@ function CreateMainForm(opt) {
     SetSelectorOption(selector_preprocess, "全域事前解析", PREPROCESS_WF);
     selector_preprocess.value = PREPROCESS_BF;
     AddElement(main_div, "br");
-    AddElement(main_div, "b", "高速化形態: ");
-    selector_fast_mode = AddElement(main_div, "select");
+    AddElement(main_div, "b", "計算精度:", "margin-right: 22px; margin-top: 9px;");
+    selector_fast_mode = AddElement(main_div, "select", null, "margin-top: 9px;");
     SetSelectorOption(selector_fast_mode, "超高速-低精度", FAST_MODE_LIT);
     SetSelectorOption(selector_fast_mode, "高速(推奨)", FAST_MODE_MID);
     SetSelectorOption(selector_fast_mode, "高精度", FAST_MODE_BIG);
@@ -350,7 +350,6 @@ function GuideCore() {
     }
     console.log("============================================");
     console.time("PRE-PROCESS");
-    // Todo: 歩き無視+動的更新?
     switch (selector_preprocess.value) {
         case PREPROCESS_DU: _Check_nodes_min = STATIONS_BUFF; break;
         case PREPROCESS_WF:
@@ -433,7 +432,7 @@ function GuideCore() {
     console.timeEnd("ROOT-PARSE");
     const l_all_result_groups = final_data.length / RESULT_GROUP;
     console.log("TOTAL DFS CALL:", __DBG_Check_nodes_call);
-    AddElement(result_area, "b", "Result Group : ");
+    AddElement(result_area, "b", "ページ :", "margin-right: 30px;");
     result_selector = AddElement(result_area, "select");
     AddElement(result_area, "br");
     for (let i = 0; i < l_all_result_groups; i++) {
@@ -442,8 +441,8 @@ function GuideCore() {
         if (l_last_s_num > final_data.length) { l_last_s_num = final_data.length; }
         SetSelectorOption(result_selector, "経路 " + l_first_s_num + " ~ 経路 " + l_last_s_num);
     }
-    AddElement(result_area, "b", "Sort Type :", "margin-right: 35px; margin-top: 15px;");
-    const l_result_sort_selector = AddElement(result_area, "select", null, "margin-top: 15px;");
+    AddElement(result_area, "b", "並び替え :", "margin-right: 15px; margin-top: 9px;");
+    const l_result_sort_selector = AddElement(result_area, "select", null, "margin-top: 9px;");
     AddElement(result_area, "br");
     SetSelectorOption(l_result_sort_selector, "乗換数順", "CHA");
     SetSelectorOption(l_result_sort_selector, "駅数順", "STA");
@@ -576,7 +575,7 @@ function RootParser(root, data, cache = null, index = 0, pretrain = null, _inite
         const l_train = trains[l_train_inx];
         if (l_train_inx != WALK_CMD) {
             // この電車にとって隣接駅であるか
-            if (!stations_shared_train[root[index]][root[index + 1]].has(l_train_inx)) { return; }
+            if (!stations_shared_train[root[index]][root[index + 1]].has(l_train_inx)) return;
         }
 
         let l_change_vec = 0;
@@ -728,6 +727,7 @@ class Queue {
 
 function GetUrlOption() {
     let opt = new Map();
+    if (location.search.length == 0) return opt;
     const pair = location.search.substring(1).split('&');
     for (let i = 0; i < pair.length; i++) {
         const kv = pair[i].split('=');
