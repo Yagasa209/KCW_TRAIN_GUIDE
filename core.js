@@ -1,9 +1,9 @@
-const g_Version = "0.30.0-rc3b";
+const g_Version = "0.30.0";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
 const WALK_CMD = 16384; //　総路線数より十分に大きい。
-const STATIONS_BUFF = 255; // 総駅数より十分に大きい。
+const STATIONS_BUFF = 200; // 総駅数より十分に大きい。
 const RESULT_BUFFER = 100000;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
@@ -84,7 +84,7 @@ function CreateMainForm(opt) {
         AddElement(main_div, "a", "徒歩ルートを無効化").href = CreateUrlWithOption({ [URL_OPT_DONT_WALK]: "1" });
     }
     AddElement(main_div, "br");
-    check_dont_use_limit = AddExCheckBox(main_div, " [解析数制限を解除(非推奨)]");
+    check_dont_use_limit = AddExCheckBox(main_div, " [解析数制限を解除(非推奨)]", "__kcw_check_dont_use_limit", "font-weight: bold;")
     AddElement(main_div, "br");
     AddElement(main_div, "b", "高速化方式: ");
     selector_preprocess = AddElement(main_div, "select");
@@ -344,9 +344,9 @@ function GuideCore() {
     to_st = station_name_to_id.get(to_st);
     switch (selector_fast_mode.value) {
         case FAST_MODE_NONE: _Intl_Min_Range = STATIONS_BUFF; break;
-        case FAST_MODE_LIT: _Intl_Min_Range = 5; break;
-        case FAST_MODE_MID: _Intl_Min_Range = 10; break;
-        case FAST_MODE_BIG: _Intl_Min_Range = 20; break;
+        case FAST_MODE_LIT: _Intl_Min_Range = 6; break;
+        case FAST_MODE_MID: _Intl_Min_Range = 12; break;
+        case FAST_MODE_BIG: _Intl_Min_Range = 24; break;
     }
     console.log("============================================");
     console.time("PRE-PROCESS");
@@ -401,7 +401,7 @@ function GuideCore() {
     console.time("CHECK-NODES");
     let result = new Array(RESULT_BUFFER);
     // 経路解析。
-    CheckNodes(to_st, from_st, new Array(station_id_to_name.length), new BitFlg(station_id_to_name.length + 2), result);
+    CheckNodes(to_st, from_st, new Array(station_id_to_name.length), new Array(station_id_to_name.length), result);
     console.timeEnd("CHECK-NODES");
     // if (selector_via.value != "NONE") {
     //     result = result.filter(function (x) { return x.includes(l_via_sta); });
@@ -544,9 +544,8 @@ function ShowRootResults(start) {
 // 路線データを解析。(再帰関数)
 function RootParser(root, data, cache = null, index = 0, pretrain = null, _inited = false, change_c = 0) {
     cache = cache || new Array(root.length - 1);
-    if (data[0] != undefined && data[0][0] < change_c) {
-        return;
-    }
+    if (data[0] != undefined && data[0][0] < change_c) return;
+
     if (index >= root.length - 1) {
         if (data[0] == undefined || (data[0][0] > change_c)) {
             data[0] = [change_c, cache.slice()];
@@ -641,12 +640,17 @@ var _Check_nodes_min = STATIONS_BUFF;
 var _Check_nodes_pos = 0;
 var __DBG_Check_nodes_call = 0;
 //経路解析
-function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
+function CheckNodes(tar, now, checked, used, ok, sinx = 0) {
     if (sinx == 0) {
         __DBG_Check_nodes_call = 0;
         _Check_nodes_pos = 0;
     }
     __DBG_Check_nodes_call++;
+    if (sinx >= _Check_nodes_min + _Intl_Min_Range) return;
+    if (sinx > STATIONS_BUFF) {
+        console.warn("stacked : ", tar, now);
+        return;
+    }
     checked[sinx] = now;
     if (tar == now) {
         if (_Check_nodes_pos >= RESULT_BUFFER) {
@@ -658,22 +662,18 @@ function CheckNodes(tar, now, checked, flg, ok, sinx = 0) {
         _Check_nodes_min = Math.min(_Check_nodes_min, sinx);
         return;
     }
-    if (sinx >= _Check_nodes_min + _Intl_Min_Range) { return; }
-    if (sinx > STATIONS_BUFF) {
-        console.warn("stacked : ", tar, now);
-        return;
-    }
-    flg.set(now);
+    used[now] = true;
     if (station_edge_infos[now]) {
         for (let e of station_edge_infos[now]) {
-            if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
+            if (!used[e]) CheckNodes(tar, e, checked, used, ok, sinx + 1);
         }
     }
     if (walk_edge_infos[now]) {
         for (let e of walk_edge_infos[now]) {
-            if (!flg.get(e)) { CheckNodes(tar, e, checked, flg.copy(), ok, sinx + 1); }
+            if (!used[e]) CheckNodes(tar, e, checked, used, ok, sinx + 1);
         };
     }
+    return used[now] = false;
 }
 
 function InxIncrLoop(arr, inx, incr = true) {
@@ -681,31 +681,6 @@ function InxIncrLoop(arr, inx, incr = true) {
     if (inx >= arr.length) { return 0; }
     else if (inx < 0) { return arr.length - 1; }
     else { return inx; }
-}
-
-class BitFlg {
-    constructor(cap) {
-        this.LIMIT = 30;
-        if (typeof cap == "number") {
-            const len = Math.ceil(cap / this.LIMIT) + 1;
-            this.bits = new Array(len);
-            for (let i = 0; i < len; i++) this.bits[i] = 0;
-        }
-        else this.bits = cap.slice();
-    }
-    set(dig) {
-        const section = Math.floor(dig / this.LIMIT);
-        const bit = dig % this.LIMIT;
-        this.bits[section] |= 1 << bit;
-    }
-    get(dig) {
-        const section = Math.floor(dig / this.LIMIT);
-        const bit = dig % this.LIMIT;
-        return (this.bits[section] & 1 << bit) == 1 << bit;
-    }
-    copy() {
-        return new BitFlg(this.bits);
-    }
 }
 
 class Queue {
@@ -765,11 +740,11 @@ function AddElement(parent, tag, text = null, style = null) {
     return t;
 }
 
-function AddExCheckBox(parent, text, style = null) {
+function AddExCheckBox(parent, text, id, style = null) {
     let chb = AddElement(parent, "input");
     chb.type = "checkbox";
-    let span_d = AddElement(parent, "b", text, style);
-    span_d.onclick = function () { chb.checked = !chb.checked; }
+    chb.id = id;
+    AddElement(parent, "label", text, style).setAttribute("for", id);
     return chb;
 }
 
