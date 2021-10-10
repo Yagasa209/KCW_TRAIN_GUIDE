@@ -1,9 +1,9 @@
-const g_Version = "0.30.0";
+const g_Version = "0.30.1";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
 const WALK_CMD = 16384; //　総路線数より十分に大きい。
-const STATIONS_BUFF = 200; // 総駅数より十分に大きい。
+const STATIONS_BUFF = 200; // 総駅数よりほどほどに十分に大きい。
 const RESULT_BUFFER = 100000;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
@@ -84,7 +84,7 @@ function CreateMainForm(opt) {
         AddElement(main_div, "a", "徒歩ルートを無効化").href = CreateUrlWithOption({ [URL_OPT_DONT_WALK]: "1" });
     }
     AddElement(main_div, "br");
-    check_dont_use_limit = AddExCheckBox(main_div, " [解析数制限を解除(非推奨)]", "__kcw_check_dont_use_limit", "font-weight: bold;")
+    check_dont_use_limit = AddExCheckBox(main_div, " [路線解析数制限を解除(非推奨)]", "__kcw_check_dont_use_limit", "font-weight: bold;")
     AddElement(main_div, "br");
     AddElement(main_div, "b", "高速化方式: ");
     selector_preprocess = AddElement(main_div, "select");
@@ -425,9 +425,9 @@ function GuideCore() {
     final_data = new Array(_Check_nodes_pos);
     // 結果毎に路線解析
     for (let i = 0; i < _Check_nodes_pos; i++) {
-        let l_trains_data = [];
+        let l_trains_data = [STATIONS_BUFF];
         RootParser(result[i], l_trains_data);
-        final_data[i] = [result[i], l_trains_data[0], i];
+        final_data[i] = [result[i], l_trains_data, i];
     }
     console.timeEnd("ROOT-PARSE");
     const l_all_result_groups = final_data.length / RESULT_GROUP;
@@ -544,11 +544,12 @@ function ShowRootResults(start) {
 // 路線データを解析。(再帰関数)
 function RootParser(root, data, cache = null, index = 0, pretrain = null, _inited = false, change_c = 0) {
     cache = cache || new Array(root.length - 1);
-    if (data[0] != undefined && data[0][0] < change_c) return;
+    if (data[0] < change_c) return;
 
     if (index >= root.length - 1) {
-        if (data[0] == undefined || (data[0][0] > change_c)) {
-            data[0] = [change_c, cache.slice()];
+        if (data[0] > change_c) {
+            data[0] = change_c;
+            data[1] = cache.slice();
         }
         return;
     }
