@@ -1,4 +1,4 @@
-const g_Version = "0.30.1";
+const g_Version = "0.30.1b";
 
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
@@ -131,7 +131,6 @@ function CreateMainForm(opt) {
 
 //set up
 function InitGuide() { // Call From LastLine
-    if (typeof DataPatcher == 'function') DataPatcher();
     urlopti = GetUrlOption();
     if (urlopti.get(URL_OPT_DONT_WALK) == "1") walk_data = [];
     CreateMainForm(urlopti);
