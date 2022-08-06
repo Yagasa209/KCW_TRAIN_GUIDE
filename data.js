@@ -182,6 +182,20 @@ trains.push({
 });
 
 trains.push({
+  name: "ローゼンライン",
+  id: "RM",
+  color: "#990000",
+  stations: [
+    ["紅摘", "ぐつみ", "05"],
+    ["苺野", "いちごの", "06"],
+    ["綺華", "きら", "07"],
+  ],
+  direct: {
+    "岸川線": "綺華",
+  }
+});
+
+trains.push({
   name: "NetherExpA線",
   id: "A",
   color: "#FF00FF",
