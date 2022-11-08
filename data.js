@@ -476,7 +476,7 @@ trains.push({
 });
 
 trains.push({
-  name: "石鉄石花線",
+  name: "石花線",
   id: "IB",
   color: "#909090",
   stations: [
@@ -553,7 +553,7 @@ trains.push({
 });
 
 trains.push({
-  name: "朝井鉄道線",
+  name: "市内線",
   id: "S",
   color: "#00B7CE",
   stations: [
@@ -603,10 +603,5 @@ walk_data.push([
 walk_data.push([
   ["何富何", "高嶺口"],
   ["なんとか", "たかねぐち"],
-]);
-
-walk_data.push([
-  ["漣", "漣駅前"],
-  ["さざなみ", "さざなみえきまえ"],
 ]);
 
