@@ -1428,7 +1428,7 @@ trains.push({
 });
 
 trains.push({
-  name: "草春線",
+  name: "草春鉄道草春線",
   id: "",
   color: "#ff9d02",
   stations: [
