@@ -3,7 +3,7 @@ const g_Version = "0.30.1b";
 const RESULT_GROUP = 10;
 const ROOT_LIMIT_RANGE = 15000;
 const WALK_CMD = 16384; //　総路線数より十分に大きい。
-const STATIONS_BUFF = 200; // 総駅数よりほどほどに十分に大きい。
+const STATIONS_BUFF = 2000; // 総駅数よりほどほどに十分に大きい。
 const RESULT_BUFFER = 100000;
 
 const main_div = AddElement(document.getElementById("guide_main"), "div", null, "background-color: #DDEEFF;");
