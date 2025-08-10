@@ -4,7 +4,7 @@ if (scr_parent == null) {
   throw "div error";
 }
 var scr_dataurl = (location.protocol == "file:") ? "./data.js" : "https://Yagasa209.github.io/KCW_TRAIN_GUIDE/data.js";
-var scr_coreurl = (location.protocol == "file:") ? "./core.js" : "https://thenyutheta.github.io/KCW_TRAIN_GUIDE/core.js";
+var scr_coreurl = (location.protocol == "file:") ? "./core.js" : "https://Yagasa209.github.io/KCW_TRAIN_GUIDE/core.js";
 var scr_data = document.createElement("script");
 scr_data.src = scr_dataurl + '?t=' + Date.now();
 scr_data.onload = function () {
